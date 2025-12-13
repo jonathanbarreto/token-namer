@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Token Namer</title>
+  <meta name="description" content="Generate consistent, structured design token names." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">◉</span>
+        <span class="brand-name">Token Namer</span>
+      </a>
+
+      <nav class="nav">
+        <a href="#tool">Tool</a>
+        <a href="/docs/documentation.html">Docs</a>
+      </nav>
+
+      <div class="header-cta">
+        <button class="btn btn-ghost" type="button" id="themeToggle" aria-label="Toggle theme">Theme</button>
+      </div>
+
+      <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <div class="mobile-nav" hidden>
+      <a href="#tool">Tool</a>
+      <a href="/docs/documentation.html">Docs</a>
+      <button class="btn btn-ghost" type="button" data-theme-toggle aria-label="Toggle theme">Theme</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="tool" class="section tool">
+      <div class="container tool-grid">
+        <section class="tool-main" aria-label="Token naming form">
+          <div class="section-head">
+            <h1 class="tool-title">Token Naming Tool</h1>
+            <p>Generate consistent token names using the <code>namespace/object/base/modifier</code> convention.</p>
+          </div>
+
+          <form id="tokenForm" class="tool-form" novalidate>
+            <div class="field">
+              <div class="field-label">
+                <label for="namespace"><span>Namespace</span><span class="req" aria-hidden="true">*</span></label>
+                <button class="info-btn" type="button" aria-label="What is namespace?" data-help="namespace">i</button>
+              </div>
+              <select id="namespace" name="namespace" required>
+                <option value="">Select namespace…</option>
+              </select>
+              <div class="field-help" id="help-namespace" hidden>The category of the token (color, spacing, typography, etc.).</div>
+              <div class="field-msg" id="msg-namespace" aria-live="polite"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">
+                <label for="object"><span>Object</span><span class="req" aria-hidden="true">*</span></label>
+                <button class="info-btn" type="button" aria-label="What is object?" data-help="object">i</button>
+              </div>
+              <select id="object" name="object" required disabled>
+                <option value="">Select object…</option>
+              </select>
+              <div class="field-help" id="help-object" hidden>What the token applies to (text, background, border, etc.).</div>
+              <div class="field-msg" id="msg-object" aria-live="polite"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">
+                <label for="base"><span>Base</span><span class="req" aria-hidden="true">*</span></label>
+                <button class="info-btn" type="button" aria-label="What is base?" data-help="base">i</button>
+              </div>
+              <select id="base" name="base" required disabled>
+                <option value="">Select base…</option>
+              </select>
+              <div class="field-help" id="help-base" hidden>Semantic intent (primary, secondary) or role (body, heading), not visual values.</div>
+              <div class="field-msg" id="msg-base" aria-live="polite"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">
+                <label for="modifierSearch"><span>Modifiers</span></label>
+                <button class="info-btn" type="button" aria-label="What is modifier?" data-help="modifier">i</button>
+              </div>
+              <div class="modifier-box" aria-describedby="help-modifier">
+                <input id="modifierSearch" type="text" inputmode="search" placeholder="Filter modifiers…" disabled />
+                <div id="modifiers" class="chips" role="listbox" aria-label="Modifier options"></div>
+              </div>
+              <div class="field-help" id="help-modifier" hidden>Optional state or variation (hover, disabled, subtle, etc.). Multiple selections combine into a single modifier segment.</div>
+              <div class="field-msg" id="msg-modifier" aria-live="polite"></div>
+            </div>
+
+            <div class="presets" aria-label="Preset suggestions">
+              <div class="presets-head">
+                <div class="presets-title">Quick picks</div>
+                <div class="presets-subtitle">Context-aware presets based on namespace.</div>
+              </div>
+              <div id="presets" class="preset-chips"></div>
+            </div>
+          </form>
+        </section>
+
+        <aside class="tool-side" aria-label="Preview and export">
+          <div class="preview-card">
+            <div class="preview-head">
+              <div class="preview-label">Live preview</div>
+              <div class="format">
+                <label class="sr-only" for="format">Format</label>
+                <select id="format" name="format">
+                  <option value="slash">Slash</option>
+                  <option value="dot">Dot</option>
+                  <option value="underscore">Underscore</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="preview" class="preview-token" tabindex="0" role="group" aria-label="Token name preview"></div>
+            <div id="status" class="status" aria-live="polite"></div>
+
+            <div class="actions">
+              <button class="btn btn-primary" type="button" id="copyName">Copy token name</button>
+              <button class="btn btn-ghost" type="button" id="copyJson">Copy JSON</button>
+            </div>
+          </div>
+
+          <div class="history-card">
+            <div class="history-head">
+              <div class="history-title">Recently generated</div>
+              <button class="btn btn-ghost btn-sm" type="button" id="clearHistory">Clear</button>
+            </div>
+            <div id="history" class="history-list" aria-live="polite"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <div class="brand brand-footer">
+          <span class="brand-mark" aria-hidden="true">◉</span>
+          <span class="brand-name">Token Namer</span>
+        </div>
+        <p class="fineprint">© <span id="year"></span> Token Namer. All rights reserved.</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="#tool">Tool</a>
+        <a href="/docs/documentation.html">Docs</a>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toastRoot" class="toasts" aria-live="polite" aria-atomic="true"></div>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>
+
