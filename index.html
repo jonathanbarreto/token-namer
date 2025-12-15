@@ -25,7 +25,6 @@
       </nav>
 
       <div class="header-cta">
-        <button class="btn btn-ghost" type="button" id="themeToggle" aria-label="Toggle theme">Theme</button>
       </div>
 
       <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
@@ -36,7 +35,6 @@
     <div class="mobile-nav" hidden>
       <a href="#tool">Tool</a>
       <a href="/docs/documentation.html">Docs</a>
-      <button class="btn btn-ghost" type="button" data-theme-toggle aria-label="Toggle theme">Theme</button>
     </div>
   </header>
 
@@ -177,41 +175,50 @@
                 </div>
 
                 <!-- Object section (Component framework) -->
-                <div class="field" id="objectSection" data-frameworks="component" style="display: none;">
-                  <div class="field-label">
-                    <label><span>Object</span></label>
-                    <button class="info-btn" type="button" aria-label="What is object?" data-help="object">i</button>
+                <div class="field accordion-container" id="objectSection" data-frameworks="component" style="display: none;">
+                  <button type="button" class="accordion-header" aria-expanded="false" aria-controls="objectContent" id="objectAccordionBtn">
+                    <div class="field-label">
+                      <label><span>Standard node</span></label>
+                    </div>
+                    <span class="accordion-icon" aria-hidden="true">▼</span>
+                  </button>
+                  <div id="objectContent" class="accordion-content" hidden>
+                    <div class="node-options">
+                      <div class="node-option">
+                        <label class="node-checkbox-label">
+                          <input type="checkbox" id="objectGroupCheck" name="objectGroupCheck" class="node-checkbox">
+                          <span>Group</span>
+                        </label>
+                        <div class="node-input-wrapper" id="objectGroupInputWrapper" style="display: none;">
+                          <input type="text" id="objectGroup" name="objectGroup" class="node-input" placeholder="Enter group value">
+                        </div>
+                        <div class="field-msg" id="msg-objectGroup" aria-live="polite"></div>
+                      </div>
+                      <div class="node-option">
+                        <label class="node-checkbox-label">
+                          <input type="checkbox" id="objectComponentCheck" name="objectComponentCheck" class="node-checkbox">
+                          <span>Component</span>
+                          <span class="req" aria-hidden="true" id="req-objectComponent">*</span>
+                        </label>
+                        <div class="node-input-wrapper" id="objectComponentInputWrapper" style="display: none;">
+                          <input type="text" id="objectComponent" name="objectComponent" class="node-input" placeholder="Enter component value">
+                        </div>
+                        <div class="field-msg" id="msg-objectComponent" aria-live="polite"></div>
+                      </div>
+                      <div class="node-option">
+                        <label class="node-checkbox-label">
+                          <input type="checkbox" id="objectElementCheck" name="objectElementCheck" class="node-checkbox">
+                          <span>Element</span>
+                          <span class="req" aria-hidden="true" id="req-objectElement">*</span>
+                        </label>
+                        <div class="node-input-wrapper" id="objectElementInputWrapper" style="display: none;">
+                          <input type="text" id="objectElement" name="objectElement" class="node-input" placeholder="Enter element value">
+                        </div>
+                        <div class="field-msg" id="msg-objectElement" aria-live="polite"></div>
+                      </div>
+                    </div>
+                    <div class="field-help" id="help-object" hidden>Object tokens define group (optional), component, and element. Check fields and enter values. Component and element are required.</div>
                   </div>
-                  <div class="object-grid">
-                    <div class="object-item">
-                      <label for="objectGroup" class="object-label">Group (optional)</label>
-                      <select id="objectGroup" name="objectGroup">
-                        <option value="">Select group…</option>
-                      </select>
-                      <div class="field-msg" id="msg-objectGroup" aria-live="polite"></div>
-                    </div>
-                    <div class="object-item">
-                      <label for="objectComponent" class="object-label">
-                        <span>Component</span>
-                        <span class="req" aria-hidden="true">*</span>
-                      </label>
-                      <select id="objectComponent" name="objectComponent" required>
-                        <option value="">Select component…</option>
-                      </select>
-                      <div class="field-msg" id="msg-objectComponent" aria-live="polite"></div>
-                    </div>
-                    <div class="object-item">
-                      <label for="objectElement" class="object-label">
-                        <span>Element</span>
-                        <span class="req" aria-hidden="true">*</span>
-                      </label>
-                      <select id="objectElement" name="objectElement" required>
-                        <option value="">Select element…</option>
-                      </select>
-                      <div class="field-msg" id="msg-objectElement" aria-live="polite"></div>
-                    </div>
-                  </div>
-                  <div class="field-help" id="help-object" hidden>Object tokens define group (optional), component, and element. Component and element are required.</div>
                 </div>
 
                 <div class="field accordion-container" id="suffixAccordionContainer">

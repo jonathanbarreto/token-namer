@@ -4,14 +4,11 @@ import {
   getBasePropertyTerms,
   getModifierTerms,
   getNamespaceTerms,
-  getObjectComponentTerms,
-  getObjectElementTerms,
-  getObjectGroupTerms,
 } from "./data.js";
 import { $, $all, fillSelectTerms, setText, setTone } from "./dom.js";
 import { formatTokenName } from "./format.js";
 import { addToHistory, clearHistory, removeHistoryItem, renderHistory } from "./history.js";
-import { loadHistory, loadThemePreference, saveThemePreference } from "./storage.js";
+import { loadHistory } from "./storage.js";
 import { showToast } from "./toast.js";
 import { isValid, validateState } from "./validation.js";
 
@@ -31,13 +28,8 @@ function initGlobalUI() {
   const year = $("#year");
   if (year) year.textContent = String(new Date().getFullYear());
 
-  const theme = resolveInitialTheme();
-  applyTheme(theme);
-
-  $("#themeToggle")?.addEventListener("click", () => toggleTheme());
-  for (const el of $all("[data-theme-toggle]")) {
-    el.addEventListener("click", () => toggleTheme());
-  }
+  // Always use light theme
+  document.documentElement.setAttribute("data-theme", "light");
 
   for (const info of $all(".info-btn")) {
     info.addEventListener("click", () => {
@@ -50,22 +42,6 @@ function initGlobalUI() {
   }
 }
 
-function resolveInitialTheme() {
-  const stored = loadThemePreference();
-  if (stored) return stored;
-  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
-  return prefersDark ? "dark" : "light";
-}
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  saveThemePreference(theme);
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute("data-theme");
-  applyTheme(current === "dark" ? "light" : "dark");
-}
 
 function initTokenTool() {
   const form = $("#tokenForm");
@@ -152,9 +128,17 @@ function initTokenTool() {
   const baseAccordionHeader = /** @type {HTMLButtonElement | null} */ ($("#baseAccordionBtn"));
   const baseAccordionContent = /** @type {HTMLElement | null} */ ($("#baseContent"));
 
-  const objectGroupSelect = /** @type {HTMLSelectElement | null} */ ($("#objectGroup"));
-  const objectComponentSelect = /** @type {HTMLSelectElement | null} */ ($("#objectComponent"));
-  const objectElementSelect = /** @type {HTMLSelectElement | null} */ ($("#objectElement"));
+  const objectGroupCheck = /** @type {HTMLInputElement | null} */ ($("#objectGroupCheck"));
+  const objectGroupInput = /** @type {HTMLInputElement | null} */ ($("#objectGroup"));
+  const objectGroupInputWrapper = /** @type {HTMLElement | null} */ ($("#objectGroupInputWrapper"));
+  const objectComponentCheck = /** @type {HTMLInputElement | null} */ ($("#objectComponentCheck"));
+  const objectComponentInput = /** @type {HTMLInputElement | null} */ ($("#objectComponent"));
+  const objectComponentInputWrapper = /** @type {HTMLElement | null} */ ($("#objectComponentInputWrapper"));
+  const objectElementCheck = /** @type {HTMLInputElement | null} */ ($("#objectElementCheck"));
+  const objectElementInput = /** @type {HTMLInputElement | null} */ ($("#objectElement"));
+  const objectElementInputWrapper = /** @type {HTMLElement | null} */ ($("#objectElementInputWrapper"));
+  const objectAccordionHeader = /** @type {HTMLButtonElement | null} */ ($("#objectAccordionBtn"));
+  const objectAccordionContent = /** @type {HTMLElement | null} */ ($("#objectContent"));
 
   const formatSelect = /** @type {HTMLSelectElement | null} */ ($("#format"));
   const modifierSearch = /** @type {HTMLInputElement | null} */ ($("#modifierSearch"));
@@ -312,6 +296,7 @@ function initTokenTool() {
 
   setupAccordion(prefixAccordionHeader, prefixAccordionContent);
   setupAccordion(baseAccordionHeader, baseAccordionContent);
+  setupAccordion(objectAccordionHeader, objectAccordionContent);
   setupAccordion(suffixAccordionHeader, suffixAccordionContent);
 
   // Checkbox toggle helper
@@ -328,6 +313,9 @@ function initTokenTool() {
   setupCheckboxToggle(baseCategoryCheck, baseCategoryInputWrapper, baseCategoryInput);
   setupCheckboxToggle(baseConceptCheck, baseConceptInputWrapper, baseConceptInput);
   setupCheckboxToggle(basePropertyCheck, basePropertyInputWrapper, basePropertyInput);
+  setupCheckboxToggle(objectGroupCheck, objectGroupInputWrapper, objectGroupInput);
+  setupCheckboxToggle(objectComponentCheck, objectComponentInputWrapper, objectComponentInput);
+  setupCheckboxToggle(objectElementCheck, objectElementInputWrapper, objectElementInput);
   setupCheckboxToggle(variantCheck, variantInputWrapper, variantInput);
   setupCheckboxToggle(stateCheck, stateInputWrapper, stateInput);
   setupCheckboxToggle(scaleCheck, scaleInputWrapper, scaleInput);
@@ -356,35 +344,10 @@ function initTokenTool() {
   setupBaseFieldHandler(baseConceptCheck, baseConceptInput, "baseConcept");
   setupBaseFieldHandler(basePropertyCheck, basePropertyInput, "baseProperty");
 
-  // Object section handlers
-  objectGroupSelect?.addEventListener("change", () => {
-    touched.objectGroup = true;
-    state.objectGroup = objectGroupSelect.value;
-    syncMessages();
-    syncPreview();
-  });
-
-  objectComponentSelect?.addEventListener("change", () => {
-    touched.objectComponent = true;
-    state.objectComponent = objectComponentSelect.value;
-    state.objectElement = "";
-    if (objectElementSelect) {
-      objectElementSelect.value = "";
-      fillSelectTerms(objectElementSelect, getObjectElementTerms(state.namespace, state.objectComponent), {
-        placeholder: "Select element…",
-      });
-      objectElementSelect.disabled = !state.objectComponent;
-    }
-    syncMessages();
-    syncPreview();
-  });
-
-  objectElementSelect?.addEventListener("change", () => {
-    touched.objectElement = true;
-    state.objectElement = objectElementSelect.value;
-    syncMessages();
-    syncPreview();
-  });
+  // Object section handlers (using checkbox pattern like base fields)
+  setupBaseFieldHandler(objectGroupCheck, objectGroupInput, "objectGroup");
+  setupBaseFieldHandler(objectComponentCheck, objectComponentInput, "objectComponent");
+  setupBaseFieldHandler(objectElementCheck, objectElementInput, "objectElement");
 
   formatSelect?.addEventListener("change", () => syncPreview());
 
@@ -505,24 +468,9 @@ function initTokenTool() {
     clearField(basePropertyCheck, basePropertyInputWrapper, basePropertyInput);
 
     // Clear object fields
-    if (objectGroupSelect) {
-      objectGroupSelect.value = "";
-      fillSelectTerms(objectGroupSelect, getObjectGroupTerms(state.namespace), {
-        placeholder: "Select group…",
-      });
-      objectGroupSelect.disabled = !state.namespace;
-    }
-    if (objectComponentSelect) {
-      objectComponentSelect.value = "";
-      fillSelectTerms(objectComponentSelect, getObjectComponentTerms(state.namespace), {
-        placeholder: "Select component…",
-      });
-      objectComponentSelect.disabled = !state.namespace;
-    }
-    if (objectElementSelect) {
-      objectElementSelect.value = "";
-      objectElementSelect.disabled = true;
-    }
+    clearField(objectGroupCheck, objectGroupInputWrapper, objectGroupInput);
+    clearField(objectComponentCheck, objectComponentInputWrapper, objectComponentInput);
+    clearField(objectElementCheck, objectElementInputWrapper, objectElementInput);
 
     // Clear suffix fields
     clearField(variantCheck, variantInputWrapper, variantInput);
@@ -590,28 +538,10 @@ function initTokenTool() {
     restoreCheckboxField(baseConceptCheck, baseConceptInput, baseConceptInputWrapper, "baseConcept");
     restoreCheckboxField(basePropertyCheck, basePropertyInput, basePropertyInputWrapper, "baseProperty");
 
-    // Restore object fields
-    if (objectGroupSelect) {
-      fillSelectTerms(objectGroupSelect, getObjectGroupTerms(state.namespace), {
-        placeholder: "Select group…",
-      });
-      objectGroupSelect.value = state.objectGroup || "";
-      objectGroupSelect.disabled = !state.namespace;
-    }
-    if (objectComponentSelect) {
-      fillSelectTerms(objectComponentSelect, getObjectComponentTerms(state.namespace), {
-        placeholder: "Select component…",
-      });
-      objectComponentSelect.value = state.objectComponent || "";
-      objectComponentSelect.disabled = !state.namespace;
-    }
-    if (objectElementSelect) {
-      fillSelectTerms(objectElementSelect, getObjectElementTerms(state.namespace, state.objectComponent), {
-        placeholder: "Select element…",
-      });
-      objectElementSelect.value = state.objectElement || "";
-      objectElementSelect.disabled = !state.objectComponent;
-    }
+    // Restore object fields (using checkbox pattern like base fields)
+    restoreCheckboxField(objectGroupCheck, objectGroupInput, objectGroupInputWrapper, "objectGroup");
+    restoreCheckboxField(objectComponentCheck, objectComponentInput, objectComponentInputWrapper, "objectComponent");
+    restoreCheckboxField(objectElementCheck, objectElementInput, objectElementInputWrapper, "objectElement");
 
     // Restore suffix modifiers
     const mods = state.modifiers || [];
