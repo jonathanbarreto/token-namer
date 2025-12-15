@@ -40,3 +40,25 @@ export function fillSelect(select, options, { placeholder = "Select…" } = {}) 
   if (options.includes(current)) select.value = current;
 }
 
+export function fillSelectTerms(select, terms, { placeholder = "Select…" } = {}) {
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = "";
+
+  const first = document.createElement("option");
+  first.value = "";
+  first.textContent = placeholder;
+  select.appendChild(first);
+
+  for (const term of terms || []) {
+    if (!term?.value) continue;
+    const opt = document.createElement("option");
+    opt.value = term.value;
+    opt.textContent = term.label || term.value;
+    if (term.description) opt.title = term.description;
+    select.appendChild(opt);
+  }
+
+  const values = (terms || []).map((t) => t?.value).filter(Boolean);
+  if (values.includes(current)) select.value = current;
+}

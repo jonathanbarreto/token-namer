@@ -28,7 +28,18 @@ export const PRESETS_BY_NAMESPACE = /** @type {const} */ ({
   ],
 });
 
-export function getPresets(namespace) {
-  return PRESETS_BY_NAMESPACE[namespace] ? [...PRESETS_BY_NAMESPACE[namespace]] : [];
+import { isAllowedBase, isAllowedModifier, isAllowedNamespace, isAllowedObject } from "./data.js";
+
+function isValidPreset(namespace, preset) {
+  if (!isAllowedNamespace(namespace)) return false;
+  if (!preset || typeof preset !== "object") return false;
+  if (!isAllowedObject(namespace, preset.object)) return false;
+  if (!isAllowedBase(namespace, preset.object, preset.base)) return false;
+  const mods = Array.isArray(preset.modifiers) ? preset.modifiers : [];
+  return mods.every((m) => isAllowedModifier(m));
 }
 
+export function getPresets(namespace) {
+  const list = PRESETS_BY_NAMESPACE[namespace] ? [...PRESETS_BY_NAMESPACE[namespace]] : [];
+  return list.filter((preset) => isValidPreset(namespace, preset));
+}

@@ -2,16 +2,6 @@ function joinSegments(segments, delimiter) {
   return segments.filter(Boolean).join(delimiter);
 }
 
-function sortedUnique(values) {
-  return [...new Set(values)].sort();
-}
-
-export function buildModifierSegment(modifiers) {
-  const normalized = sortedUnique(modifiers).filter(Boolean);
-  if (normalized.length === 0) return "";
-  return normalized.join("-");
-}
-
 export function getDelimiters(format) {
   switch (format) {
     case "dot":
@@ -24,23 +14,42 @@ export function getDelimiters(format) {
   }
 }
 
-export function formatTokenName({ namespace, object, base, modifiers }, format) {
-  const modifierSegment = buildModifierSegment(modifiers);
-  const segments = [namespace, object, base, modifierSegment].filter(Boolean);
-  return joinSegments(segments, getDelimiters(format).join);
-}
+export function formatTokenName(
+  {
+    prefixSystem,
+    prefixTheme,
+    prefixDomain,
+    namespace,
+    baseCategory,
+    baseConcept,
+    baseProperty,
+    objectGroup,
+    objectComponent,
+    objectElement,
+    modifiers,
+    framework,
+  },
+  format,
+) {
+  const segments = [];
+  if (prefixSystem) segments.push(prefixSystem);
+  if (prefixTheme) segments.push(prefixTheme);
+  if (prefixDomain) segments.push(prefixDomain);
+  if (namespace) segments.push(namespace);
 
-export function formatTokenPreviewSegments({ namespace, object, base, modifiers }) {
-  const modifierSegment = buildModifierSegment(modifiers);
-  return {
-    namespace: namespace || "_",
-    object: object || "_",
-    base: base || "_",
-    modifier: modifierSegment || "_",
-    hasNamespace: Boolean(namespace),
-    hasObject: Boolean(object),
-    hasBase: Boolean(base),
-    hasModifier: Boolean(modifierSegment),
-  };
+  if (framework === "primitive" || framework === "semantic") {
+    if (baseCategory) segments.push(baseCategory);
+    if (baseConcept) segments.push(baseConcept);
+    if (baseProperty) segments.push(baseProperty);
+  } else if (framework === "component") {
+    if (objectGroup) segments.push(objectGroup);
+    if (objectComponent) segments.push(objectComponent);
+    if (objectElement) segments.push(objectElement);
+  }
+
+  const suffix = Array.isArray(modifiers) ? modifiers.filter(Boolean) : [];
+  segments.push(...suffix);
+
+  return joinSegments(segments, getDelimiters(format).join);
 }
 

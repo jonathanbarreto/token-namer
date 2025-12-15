@@ -5,15 +5,13 @@ const MAX_ITEMS = 10;
 
 function keyForEntry(entry) {
   const modifiers = Array.isArray(entry.modifiers) ? [...entry.modifiers].sort().join(",") : "";
-  return `${entry.namespace}|${entry.object}|${entry.base}|${modifiers}`;
+  return `${entry.namespace}|${entry.prefixSystem}|${entry.prefixTheme}|${entry.prefixDomain}|${entry.baseCategory}|${entry.baseConcept}|${entry.baseProperty}|${entry.objectGroup}|${entry.objectComponent}|${entry.objectElement}|${modifiers}`;
 }
 
 export function addToHistory(state) {
   const items = loadHistory();
   const entry = {
-    namespace: state.namespace,
-    object: state.object,
-    base: state.base,
+    ...state,
     modifiers: [...(state.modifiers || [])],
     ts: Date.now(),
   };

@@ -18,52 +18,91 @@ export function validateState(state) {
   /** @type {{ field: string, message: string }[]} */
   const warnings = [];
 
-  const { namespace, object, base, modifiers } = state;
+  const {
+    framework,
+    namespace,
+    prefixSystem,
+    prefixTheme,
+    prefixDomain,
+    baseCategory,
+    baseConcept,
+    baseProperty,
+    objectGroup,
+    objectComponent,
+    objectElement,
+    modifiers,
+  } = state;
 
-  if (!namespace) errors.push({ field: "namespace", message: "This field is required." });
+  // Namespace validation (required for all frameworks)
+  if (!namespace) errors.push({ field: "namespace", message: "Namespace is required." });
   if (namespace && !isAllowedNamespace(namespace)) {
     errors.push({ field: "namespace", message: "Invalid namespace selection." });
   }
   if (hasInvalidChars(namespace)) errors.push({ field: "namespace", message: "Invalid characters." });
 
-  if (!object) errors.push({ field: "object", message: "This field is required." });
-  if (namespace && object && !isAllowedObject(namespace, object)) {
-    errors.push({ field: "object", message: "Object must match the selected namespace." });
+  // Prefix fields are optional, but validate if present
+  if (prefixSystem && hasInvalidChars(prefixSystem)) {
+    errors.push({ field: "prefixSystem", message: "Invalid characters in prefix system." });
   }
-  if (hasInvalidChars(object)) errors.push({ field: "object", message: "Invalid characters." });
-
-  if (!base) errors.push({ field: "base", message: "This field is required." });
-  if (namespace && base && !isAllowedBase(namespace, object, base)) {
-    errors.push({ field: "base", message: "Base must match the selected namespace." });
+  if (prefixTheme && hasInvalidChars(prefixTheme)) {
+    errors.push({ field: "prefixTheme", message: "Invalid characters in prefix theme." });
   }
-  if (hasInvalidChars(base)) errors.push({ field: "base", message: "Invalid characters." });
+  if (prefixDomain && hasInvalidChars(prefixDomain)) {
+    errors.push({ field: "prefixDomain", message: "Invalid characters in prefix domain." });
+  }
 
+  // Framework-specific validation
+  if (framework === "primitive" || framework === "semantic") {
+    // Base section validation
+    if (!baseCategory) {
+      errors.push({ field: "baseCategory", message: "Category is required." });
+    }
+    if (baseCategory && hasInvalidChars(baseCategory)) {
+      errors.push({ field: "baseCategory", message: "Invalid characters in category." });
+    }
+
+    if (baseConcept && hasInvalidChars(baseConcept)) {
+      errors.push({ field: "baseConcept", message: "Invalid characters in concept." });
+    }
+    if (baseProperty && hasInvalidChars(baseProperty)) {
+      errors.push({ field: "baseProperty", message: "Invalid characters in property." });
+    }
+
+    // Semantic requires all three base fields
+    if (framework === "semantic") {
+      if (!baseConcept) {
+        errors.push({ field: "baseConcept", message: "Concept is required for semantic tokens." });
+      }
+      if (!baseProperty) {
+        errors.push({ field: "baseProperty", message: "Property is required for semantic tokens." });
+      }
+    }
+  } else if (framework === "component") {
+    // Object section validation
+    if (objectGroup && hasInvalidChars(objectGroup)) {
+      errors.push({ field: "objectGroup", message: "Invalid characters in group." });
+    }
+
+    if (!objectComponent) {
+      errors.push({ field: "objectComponent", message: "Component is required." });
+    }
+    if (objectComponent && hasInvalidChars(objectComponent)) {
+      errors.push({ field: "objectComponent", message: "Invalid characters in component." });
+    }
+
+    if (!objectElement) {
+      errors.push({ field: "objectElement", message: "Element is required." });
+    }
+    if (objectElement && hasInvalidChars(objectElement)) {
+      errors.push({ field: "objectElement", message: "Invalid characters in element." });
+    }
+  }
+
+  // Modifier validation
   const normalizedModifiers = Array.isArray(modifiers) ? modifiers.filter(Boolean) : [];
   for (const mod of normalizedModifiers) {
     if (!isAllowedModifier(mod)) errors.push({ field: "modifier", message: `Modifier "${mod}" is not allowed.` });
     if (hasInvalidChars(mod)) errors.push({ field: "modifier", message: "Invalid characters in modifier." });
-  }
-
-  const hasSubtle = normalizedModifiers.includes("subtle");
-  const hasStrong = normalizedModifiers.includes("strong");
-  if (hasSubtle && hasStrong) {
-    errors.push({ field: "modifier", message: 'Modifiers "subtle" and "strong" are mutually exclusive.' });
-  }
-
-  const hasDisabled = normalizedModifiers.includes("disabled");
-  const hasHover = normalizedModifiers.includes("hover");
-  const hasActive = normalizedModifiers.includes("active");
-  const hasFocus = normalizedModifiers.includes("focus");
-  if (hasDisabled && (hasHover || hasActive || hasFocus)) {
-    warnings.push({ field: "modifier", message: "This combination is uncommon (state + disabled)." });
-  }
-
-  const hasOrderingIssue =
-    (!namespace && (object || base || normalizedModifiers.length > 0)) ||
-    (!object && (base || normalizedModifiers.length > 0)) ||
-    (!base && normalizedModifiers.length > 0);
-  if (hasOrderingIssue) {
-    warnings.push({ field: "form", message: "Please complete previous fields first." });
   }
 
   return { errors, warnings };
@@ -72,4 +111,3 @@ export function validateState(state) {
 export function isValid(state) {
   return validateState(state).errors.length === 0;
 }
-
