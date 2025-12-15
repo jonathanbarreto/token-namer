@@ -1,31 +1,33 @@
 # Token Namer Tool — PRD (Revised v2)
 
 ## Summary
-Build a web-based **token naming tool** that helps people generate consistent design token names using **three naming frameworks**, one per token tier:
+A web-based **token naming tool** that helps people generate consistent design token names using **three naming frameworks**, one per token tier:
 - **Primitive**
 - **Semantic**
 - **Component**
 
-The tool is **schema-driven**: each framework defines ordered **slots** grouped into **Prefix / Base / Suffix**, plus rules and allowed vocabulary. The UI guides users by letting them select predefined “node” terms (with definitions) and optionally add custom terms **only in explicitly allowed slots**.
+The tool uses a **form-based interface** with accordion sections for **Prefix / Base / Suffix** fields. Users select terms from combobox inputs populated with predefined vocabulary and can optionally add custom terms in allowed fields.
 
 **Primary output:** a **live preview** of the token name (path) that users can **copy**.
 
-**Persistence:** The tool does **not** store generated token names in any database.
+**Persistence:** The tool stores generated token names in browser localStorage as history (last 10 items). Custom terms are session-only and never persisted.
 
 ---
 
 ## Goals
 - Make token names consistent without requiring users to memorize naming rules.
-- Encode naming logic in a configurable schema so it can evolve without rebuilding the UI.
 - Provide real-time validation with clear, actionable error messages.
 - Keep the app lightweight: **assemble → validate → preview → copy**.
+- Enable quick reuse of common token patterns through history and presets.
+
+**Future goal:** Migrate to a schema-driven architecture using JSON/YAML configuration files for flexible vocabulary management.
 
 ## Non-goals (v1)
-- Persisting token names (no DB, no server-side storage).
-- Persisting custom terms (they are session-only and never saved).
+- Server-side storage or database persistence.
+- Persisting custom terms beyond the current session (they are session-only).
 - Applying tokens to design tools (e.g., Figma) or syncing tokens to code repos.
-- Admin UI for managing schema/vocabulary (configuration managed via JSON/YAML files in codebase).
-- Export formats beyond copying the preview string.
+- Admin UI for managing vocabulary (currently hardcoded; future: configuration via JSON/YAML files).
+- Export formats beyond copying the preview string or JSON representation.
 
 ---
 
@@ -44,78 +46,87 @@ The tool has **3 tabs**, each mapped to a naming framework:
 2. Semantic
 3. Component
 
-Each tab loads its framework’s:
-- slot schema (order, requiredness, constraints)
-- allowed vocabulary per slot (terms + definitions)
-- framework settings (casing rules, reserved values)
+Each tab maintains its own state and field configuration:
+- Field structure (order, requiredness) - currently hardcoded, future: schema-driven
+- Allowed vocabulary per field - currently from hardcoded `vocabulary.js`
+- Framework-specific validation rules
 
 ### Shared UI pattern (all tabs)
 
-The interface uses a split-pane layout with two main areas:
+The interface uses an **accordion-based form layout** with the following structure:
 
 **Layout structure:**
-- **Desktop/Tablet**: Two-column layout (left: Node library, right: Assembler)
-  - Left pane: ~40% width (flexible, minimum 300px)
-  - Right pane: ~60% width (flexible, minimum 400px)
-  - Both panes scroll independently if content overflows
-- **Mobile**: Stacked layout (Node library above Assembler), single column, full width
-- **Breakpoint**: Switch to stacked layout below 768px viewport width
+- **Single-column form** with collapsible accordion sections
+- **Live preview card** displayed prominently at the top
+- **Accordion sections** for field groups (Prefix, Base/Standard, Suffix)
+- Sections can be expanded/collapsed independently
+- Responsive design: maintains single-column layout across screen sizes
 
-**Left pane: Node library**
-- **Grouped sections**: Three collapsible sections for Prefix / Base / Suffix
-  - Each section header shows group name and count of visible terms
-  - Sections can be expanded/collapsed independently
-  - Sections render based on `slot_group` from schema
-- **Node cards**: Selectable cards displaying vocabulary terms
-  - Each card shows: **term** (prominent) + **description** (secondary text)
-  - Status indicators: deprecated terms show warning icon/styling
-  - Hover state: subtle background change, cursor pointer
-  - Selected state: visual indication when term is used in current assembler
-  - Disabled state: grayed out when term cannot be used (e.g., hidden status)
-- **Search/filter**: Per-section or global search functionality
-  - Search input at top of each section (or single global search above all sections)
-  - Live filtering: results update as user types
-  - Search matches against term name and description (case-insensitive)
-  - "Clear search" button appears when search has text
-  - Filter toggle: show/hide deprecated terms (default: show with warning styling)
-
-**Right pane: Assembler**
-- **Slot display**: Ordered slots rendered from schema
-  - Each slot shows: label, required indicator (*), current value (if any)
-  - Slots grouped visually by Prefix / Base / Suffix (matching node library groups)
-  - Empty slots: show placeholder text (e.g., "Click to select...")
-  - Filled slots: show value as chip/badge with remove button (×)
-  - Focused slot: visual highlight (border, background change)
-  - Error state: red border, error message below slot
-- **Slot chips**: Filled values displayed as removable chips
-  - Click chip to edit/replace value
-  - Remove button (×) on hover/focus to clear slot
-  - Custom term indicator: visual distinction (e.g., dashed border, "custom" badge)
-- **Live preview**: Prominent display of generated token name
-  - Sticky positioning: stays visible when scrolling
-  - Large, monospace font for readability
-  - Visual distinction between filled and empty segments
-  - Empty segments shown as grayed-out placeholders (e.g., `_`)
-  - Click-to-copy functionality (keyboard shortcut: Cmd/Ctrl+C when focused)
-- **Validation panel**: Display errors and warnings
-  - Located below preview or as inline messages per slot
-  - Errors: red styling, block Copy action
-  - Warnings: yellow/orange styling, Copy still allowed
-  - Most critical error shown first if multiple exist
-- **Preview separator control**: Toggle between `/` and `_`
-  - Radio buttons or segmented control
-  - Located near preview area
-  - Default: `/` selected
+**Preview card (top section):**
+- **Live preview display**: Shows generated token name with selected format separator
+- **Category pills**: Visual breakdown showing each segment with its label (e.g., "Namespace: color", "Category: primary")
+- **Format selector**: Dropdown to choose separator format (Slash, Underscore, Dot)
+  - Default: Slash (`/`)
   - Updates preview immediately on change
+- **Status message**: Shows validation state (error/warning/success messages)
+  - "Ready to copy" when valid
+  - Most critical error message when invalid
+- **Copy buttons**: Two buttons to copy the token name or full JSON representation
+  - Disabled when validation errors exist
+  - Toast notification on successful copy
+  - Keyboard shortcut: Cmd/Ctrl+C when preview area is focused
+
+**Prefix node section (accordion):**
+- **Collapsed by default**
+- **Add buttons**: Buttons to add optional prefix fields (System, Theme, Domain)
+  - Fields are added dynamically when buttons are clicked
+  - Each added field can be removed individually (× button)
+- **Combobox inputs**: Autocomplete-enabled text inputs for each prefix field
+  - Shows vocabulary suggestions as user types
+  - Allows custom input (free text)
+  - Displays descriptions via tooltips
+
+**Standard node section (accordion):**
+- **Expanded by default**
+- **Framework-specific fields**:
+  - **Primitive**: Category (required), Property (optional, addable via button)
+  - **Semantic**: Category (required), Concept (required), Property (required)
+  - **Component**: Group (optional, addable), Component (required), Element (required)
+- **Required fields**: Always visible with required indicator (*)
+- **Optional fields**: Can be added/removed via buttons
+- **Combobox inputs**: Autocomplete-enabled for all fields
+  - Vocabulary filtered based on namespace and other field values
+  - Conditional vocabulary (e.g., motion bases vary by object type)
+
+**Suffix node section (accordion):**
+- **Collapsed by default**
+- **Add buttons**: Buttons to add optional modifier fields (Variant, State, Scale, Mode)
+  - Fields are added dynamically when buttons are clicked
+  - Each added field can be removed individually (× button)
+  - Fields maintain order: Variant → State → Scale → Mode
+- **Combobox inputs**: Autocomplete-enabled for modifier values
+  - Shared vocabulary across all modifier types
+  - Allows custom input
+
+**Combobox behavior:**
+- **Autocomplete**: Filters vocabulary as user types (case-insensitive)
+- **Keyboard navigation**: Arrow keys to navigate suggestions, Enter to select, Escape to close
+- **Custom input**: All fields allow free-text entry (not restricted to vocabulary)
+- **Descriptions**: Term descriptions shown via tooltips/titles on hover
+- **Validation**: Real-time validation as user types
+
+**Validation display:**
+- **Inline messages**: Each field shows its own error/warning message below the input
+- **Status area**: Preview card shows overall status and most critical error
+- **Visual indicators**: Error fields show red border and error styling
+- **Copy blocking**: Copy buttons disabled when validation errors exist
 
 **Visual states:**
-- **Empty slot**: Grayed placeholder, dashed border (optional)
-- **Filled slot**: Solid background/border, value displayed as chip
-- **Focused slot**: Highlighted border (e.g., blue), subtle background tint
-- **Error state**: Red border, error icon, error message text
-- **Warning state**: Orange/yellow border, warning icon
-- **Disabled state**: Reduced opacity, not interactive
-- **Custom term indicator**: Dashed border or "custom" badge to distinguish from predefined terms
+- **Empty field**: Placeholder text shown in combobox
+- **Filled field**: Value displayed in combobox input
+- **Error state**: Red border, error message below field
+- **Focus state**: Standard browser focus styles
+- **Disabled state**: Copy buttons grayed out when errors exist
 
 ---
 
@@ -127,63 +138,71 @@ To illustrate how the three frameworks differ, here are concrete examples:
 
 Primitive tokens represent the most basic design values without semantic meaning.
 
-**Example slot schema:**
-- Slot 1 (Prefix): category — e.g., `color`, `spacing`, `typography`
-- Slot 2 (Base): scale value — e.g., `50`, `100`, `200`, `500`, `900`
+**Field structure:**
+- Namespace (required): e.g., `color`, `space`, `typography`, `radius`, `motion`
+- Category (required, base): Semantic category — e.g., `primary`, `secondary`, `default`
+- Property (optional, base): Additional property descriptor
+- Prefix fields (optional): System, Theme, Domain
+- Suffix modifiers (optional): Variant, State, Scale, Mode
 
-**Example vocabulary:**
-- Prefix slot: `color`, `spacing`, `typography`, `radius`, `motion`
-- Base slot: `50`, `100`, `200`, `300`, `400`, `500`, `600`, `700`, `800`, `900`
+**Example vocabulary (namespace-dependent):**
+- Namespace `color`: Categories like `primary`, `secondary`, `accent`, `default`, `muted`
+- Namespace `space`: Scale values like `xs`, `sm`, `md`, `lg`, `xl`, `2xl`, `3xl`
+- Namespace `typography`: Usage types like `body`, `heading`, `caption`, `label`, `code`
 
 **Example token names:**
-- `color/500`
-- `spacing/200`
-- `typography/400`
-- `radius/100`
+- `color/primary`
+- `space/md`
+- `typography/body`
+- `radius/button/default`
 
 ### Semantic framework
 
 Semantic tokens assign meaning to primitive values, describing their purpose or role.
 
-**Example slot schema:**
-- Slot 1 (Prefix): category — e.g., `color`, `spacing`, `typography`
-- Slot 2 (Base): semantic role — e.g., `semantic`, `surface`, `interactive`
-- Slot 3 (Suffix): specific use — e.g., `background`, `text`, `border`
-- Slot 4 (Suffix): hierarchy/intent — e.g., `primary`, `secondary`, `default`
-- Slot 5 (Suffix): emphasis — e.g., `strong`, `weak`, `weakest` (optional)
+**Field structure:**
+- Namespace (required): e.g., `color`, `space`, `typography`, `radius`, `motion`
+- Category (required, base): Semantic category — e.g., `primary`, `secondary`, `default`
+- Concept (required, base): Semantic concept — e.g., `text`, `background`, `border`, `icon`
+- Property (required, base): Property descriptor — e.g., `primary`, `secondary`, `accent`
+- Prefix fields (optional): System, Theme, Domain
+- Suffix modifiers (optional): Variant, State, Scale, Mode
 
-**Example vocabulary:**
-- Category (Prefix): `color`, `spacing`, `typography`
-- Role (Base): `semantic`, `surface`, `interactive`, `focus`
-- Use (Suffix): `background`, `text`, `border`, `icon`
-- Intent (Suffix): `primary`, `secondary`, `accent`, `default`, `muted`
-- Emphasis (Suffix, optional): `strong`, `weak`, `weakest`, `subtle`
+**Example vocabulary (namespace-dependent):**
+- Namespace `color`: 
+  - Categories: `primary`, `secondary`, `accent`, `default`, `muted`
+  - Concepts: `text`, `background`, `border`, `icon`
+  - Properties: `primary`, `secondary`, `accent`, `default`, `muted`, `subtle`, `strong`
+- Namespace `space`: Categories like `default`, `compact`, `cozy`, `roomy`
 
 **Example token names:**
-- `color/semantic/surface/background/primary`
-- `color/semantic/interactive/text/primary/strong`
-- `spacing/semantic/surface/default/weakest`
+- `color/primary/text/primary`
+- `color/secondary/background/default`
+- `space/default/text/default`
 
 ### Component framework
 
 Component tokens are specific to UI components, describing their styling properties.
 
-**Example slot schema:**
-- Slot 1 (Prefix): category — e.g., `color`, `spacing`, `typography`
-- Slot 2 (Base): component type — e.g., `button`, `input`, `card`
-- Slot 3 (Suffix): property — e.g., `background`, `border`, `text`
-- Slot 4 (Suffix): variant/state — e.g., `primary`, `hover`, `disabled` (optional)
+**Field structure:**
+- Namespace (required): e.g., `color`, `space`, `typography`, `radius`, `motion`
+- Group (optional, base): Component group/collection
+- Component (required, base): Component type — e.g., `button`, `input`, `card`, `badge`
+- Element (required, base): Element/property — e.g., `text`, `background`, `border`, `icon`
+- Prefix fields (optional): System, Theme, Domain
+- Suffix modifiers (optional): Variant, State, Scale, Mode
 
-**Example vocabulary:**
-- Category (Prefix): `color`, `spacing`, `typography`, `radius`, `shadow`
-- Component (Base): `button`, `input`, `card`, `badge`, `modal`
-- Property (Suffix): `background`, `border`, `text`, `icon`, `padding`
-- Variant/State (Suffix, optional): `primary`, `secondary`, `hover`, `active`, `focus`, `disabled`
+**Example vocabulary (namespace-dependent):**
+- Namespace `color`:
+  - Objects (components): `text`, `background`, `border`, `icon`
+- Namespace `space`: Scale values like `xs`, `sm`, `md`, `lg`, `xl`
+- Namespace `radius`: Objects like `button`, `card`, `input`, `badge`
+- Namespace `typography`: Objects like `font-family`, `font-size`, `line-height`, `font-weight`
 
 **Example token names:**
-- `color/button/background/primary`
-- `color/button/text/primary/hover`
-- `spacing/input/padding/default`
+- `color/button/text/primary`
+- `color/button/background/primary/hover`
+- `space/input/padding/md`
 - `radius/card/default`
 
 ---
@@ -191,15 +210,17 @@ Component tokens are specific to UI components, describing their styling propert
 ## Naming rules (new context)
 
 ### 1) Live preview separators (user-selected)
-- Between **path segments** (slot outputs), the user can choose either:
-  - `/` **or**
-  - `_`
-- Default separator is `/`.
+- Between **path segments** (field outputs), the user can choose from:
+  - `/` (Slash) - default
+  - `_` (Underscore)
+  - `.` (Dot)
 - The separator selection is **UI state** and applies to the current preview (and copy output).
+- Format can be changed via dropdown selector in the preview card.
 
 Examples:
-- `color/semantic/surface/background/primary/weakest`
-- `color_semantic_surface_background_primary_weakest`
+- `color/primary/text/primary` (slash format)
+- `color_primary_text_primary` (underscore format)
+- `color.primary.text.primary` (dot format)
 
 ### 2) Multi-word vocabulary terms
 - Vocabulary terms that represent multiple words must use `-` between words **within a single segment**:
@@ -250,43 +271,56 @@ Vocabulary is stored in JSON or YAML configuration files within the codebase.
 
 ### R3 — Selection and assembly behavior
 
-**Focus model:**
-- Slots can be explicitly focused by clicking on them
-- Focused slot is visually highlighted (border, background change)
-- Only one slot can be focused at a time
-- If no slot is focused, the next valid empty slot is implicitly "targeted" for selection
+**Combobox input model:**
+- All fields use combobox (autocomplete-enabled text input) components
+- Users type to filter vocabulary suggestions or enter custom values
+- Focus follows standard form field navigation (Tab/Shift+Tab)
+- Fields update state and preview in real-time as user types
 
 **Selection behavior:**
-When a user clicks a node card (predefined vocabulary term):
-- If a slot is explicitly focused: fills that focused slot
-- If no slot is focused: fills the first empty required slot, or first empty optional slot if all required are filled
-- If all slots are filled: replaces the focused slot (or last slot if none focused)
+When a user interacts with a combobox:
+- **Typing**: Filters vocabulary suggestions in real-time (case-insensitive)
+- **Arrow keys**: Navigate through filtered suggestions
+- **Enter**: Selects highlighted suggestion
+- **Click suggestion**: Selects that term immediately
+- **Custom input**: Users can type any value (all fields allow free text)
 - Selection immediately updates live preview
 
 **Removal/replacement:**
-- Users can click a filled slot's chip to remove its value (or use remove button ×)
-- Users can click a filled slot to focus it, then select a different term to replace it
-- Replacing a slot does not affect other slots' values
-- Removing a slot clears its value and updates preview immediately
+- Users can clear a field by deleting all text in the combobox
+- For optional fields added via buttons, users can click the remove (×) button
+- Replacing a field value does not affect other fields' values
+- Clearing a field updates preview immediately
 
 **Keyboard navigation:**
-- Tab key: moves focus between slots in order (`slot_order`)
+- Tab key: moves focus between fields in order
 - Shift+Tab: moves focus backwards
-- Enter/Space on focused slot: opens selection menu or focuses node library (implementation-dependent)
-- Arrow keys in node library: navigate between node cards
-- Escape: clears focus
+- Arrow keys (up/down) in combobox: navigate suggestions
+- Enter: selects highlighted suggestion
+- Escape: closes suggestion dropdown
+- Standard form navigation applies
+
+**Field management:**
+- Optional prefix fields: Added via "+ System", "+ Theme", "+ Domain" buttons
+- Optional base fields: Added via "+ Property" or "+ Concept" buttons (framework-dependent)
+- Optional object fields: Added via "+ Group" button (component framework)
+- Optional suffix fields: Added via "+ Variant", "+ State", "+ Scale", "+ Mode" buttons
+- Added fields can be removed via × button on the field wrapper
+- Field state is preserved when switching between framework tabs
 
 **Edge cases:**
-- All slots filled: clicking a node card replaces focused slot, or last slot if none focused
-- Required slots: cannot be left empty if validation runs (but user can temporarily clear during editing)
-- Optional slots: can be cleared even if required slots are empty
-- Slot focus is preserved when switching between tabs (each framework maintains its own focus state)
+- All fields filled: User can still modify any field value
+- Required fields: Cannot be left empty if validation runs (but user can temporarily clear during editing)
+- Optional fields: Can be cleared or removed even if required fields are empty
+- Field state is preserved when switching between tabs (each framework maintains its own state)
+- Namespace change: Resets all framework-specific fields
 
 **Acceptance criteria**
-- Users can replace a slot without resetting the entire name.
-- Removing a slot updates the preview instantly.
-- Focus management works intuitively with both mouse and keyboard.
-- Selection targets the focused slot when one is focused.
+- Users can replace a field value without resetting the entire name.
+- Clearing a field updates the preview instantly.
+- Vocabulary filtering works smoothly as user types.
+- Custom values can be entered in any field.
+- Field focus and navigation work intuitively with keyboard.
 
 ---
 
@@ -437,471 +471,424 @@ Rule:
 
 ---
 
-### R8 — Segment character constraints (DTCG-aligned + preview-safe)
-Each segment (slot output) must:
-- **NOT** start with `$`
-- **NOT** contain `.`, `{`, `}`
-- **NOT** contain `/` or `_` (reserved for segment joining in preview)
-- Use `-` only for multi-word terms within a segment
+### R8 — Segment character constraints
+Each segment (field output) must:
+- **ONLY** contain lowercase letters (`a-z`), numbers (`0-9`), and hyphens (`-`)
+- **NOT** contain spaces, uppercase letters, or special characters
+- Validation regex: `/[^a-z0-9-]/` (rejects any character not in allowed set)
+- Use `-` for multi-word terms within a segment (e.g., `font-size`, `letter-spacing`)
 
 **Acceptance criteria**
-- Any segment containing forbidden characters is rejected with a specific error.
-- Users cannot accidentally create ambiguous paths by including `/` or `_` in a segment.
+- Any segment containing forbidden characters is rejected with a specific error message.
+- Error message: "Invalid characters in [field name]."
+- Validation runs in real-time as user types.
 
 ---
 
 ### R9 — Preview separator control
-- Provide a UI control to switch the preview separator between `/` and `_`.
-- Default selection is `/`.
+- Provide a dropdown selector to switch the preview separator between:
+  - `/` (Slash) - default
+  - `_` (Underscore)
+  - `.` (Dot)
+- Default selection is `/` (Slash).
 - Changing the separator updates the live preview immediately.
 - Copy uses the currently selected separator.
 
 **Acceptance criteria**
-- Switching separators updates preview instantly without altering selected terms.
-- Reset clears slots but does not change the current separator selection.
+- Switching separators updates preview instantly without altering selected field values.
+- Format preference is maintained during the session but not persisted across page refreshes.
 
 ---
 
 ### R10 — Copy and reset
 
 **Copy functionality:**
-- **Copy button**: Located prominently near the live preview
-- **Action**: Copies the live preview string (with current separator) to clipboard
-- **State**: Disabled when blocking validation errors exist (visually grayed out, not clickable)
-- **Feedback**: Shows success toast/notification "Copied to clipboard"
-- **Keyboard shortcut**: Cmd/Ctrl+C when preview area is focused
+- **Copy buttons**: Two buttons near the live preview
+  - "Copy token name": Copies the live preview string (with current separator) to clipboard
+  - "Copy JSON": Copies the full state as formatted JSON (includes all field values and modifiers)
+- **State**: Both buttons disabled when blocking validation errors exist (visually grayed out, not clickable)
+- **Feedback**: Shows success toast notification "Copied." or "Copied JSON."
+- **History**: Successful copy adds the token state to history (see R11)
+- **Keyboard shortcut**: Cmd/Ctrl+C when preview area is focused (copies token name)
 
 **Reset functionality:**
-- **Reset button**: Located near the Copy button or in the assembler area
-- **Action**: Clears all slot values for the active framework/tab only
+- **Note**: Reset functionality is not currently implemented in the UI
+- **Intended behavior**: Clear all field values for the active framework/tab only
 - **Scope**: Only affects the current tab's session state
 - **Preserves**: Does not change the current tab selection, does not reset preview separator selection
-- **Confirmation**: No confirmation dialog required (immediate action)
-- **Feedback**: Shows toast/notification "Reset complete" or similar
 
 **Acceptance criteria**
-- Copy is disabled when blocking validation errors exist.
-- Reset does not affect other tabs.
-- Reset does not change the preview separator selection.
+- Copy buttons are disabled when blocking validation errors exist.
+- Copy actions add entries to history.
 - Copy uses the currently selected separator.
+- Copy JSON includes complete state representation.
+
+---
+
+### R11 — History functionality
+
+**Overview:**
+History stores the last 10 successfully copied token configurations in browser localStorage, allowing users to quickly reuse previous token names.
+
+**History storage:**
+- **Location**: Browser localStorage (key: `token-namer:history`)
+- **Maximum items**: 10 entries (oldest removed when limit exceeded)
+- **Persistence**: Survives page refreshes and browser sessions
+- **Scope**: Global across all frameworks (not per-framework)
+
+**History entry structure:**
+Each entry stores the complete token state:
+- All field values (namespace, prefix fields, base fields, object fields)
+- Modifiers array
+- Timestamp (used for uniqueness and sorting)
+
+**History display:**
+- **Location**: History section (if visible in UI)
+- **Format**: Each entry shows the generated token name
+- **Actions per entry**:
+  - **Fill form** (↩ icon): Populates the form with that entry's values
+  - **Copy** (⧉ icon): Copies the token name to clipboard
+  - **Remove** (× icon): Removes that entry from history
+- **Empty state**: Shows message "No history yet. Copy a token name to save it here."
+
+**History management:**
+- **Add to history**: Automatic when user successfully copies a token name
+- **Deduplication**: Duplicate entries (same field values) are replaced, keeping the most recent
+- **Clear history**: Option to clear all history entries (if UI provides this action)
+
+**Acceptance criteria**
+- History stores last 10 copied token configurations.
+- History persists across page refreshes.
+- History entries can be used to fill the form or copy again.
+- Duplicate entries are replaced with the most recent.
+
+---
+
+### R12 — Presets functionality
+
+**Overview:**
+Presets provide quick-fill options for common token patterns, organized by namespace. This helps users quickly generate standard token configurations.
+
+**Preset structure:**
+- **Organization**: Presets grouped by namespace (color, space, typography, radius, motion)
+- **Definition**: Each preset defines:
+  - Label (display name)
+  - Object/value for the base field
+  - Base value
+  - Modifiers array (optional)
+- **Validation**: Presets are validated against current vocabulary to ensure they're still valid
+
+**Preset examples:**
+- **Color namespace**: `text/primary`, `background/default`, `border/subtle`, `text/primary/hover`
+- **Space namespace**: `md/default`, `lg/default`, `sm/compact`
+- **Typography namespace**: `font-size/body`, `line-height/body`, `font-weight/heading`
+- **Radius namespace**: `button/default`, `card/subtle`, `badge/pill`
+- **Motion namespace**: `duration/fast`, `easing/standard`, `delay/medium`
+
+**Preset usage:**
+- **Access**: Presets available when namespace is selected (if UI provides preset selection)
+- **Application**: Selecting a preset fills the form with preset values
+- **Validation**: Presets are validated before being applied
+- **Customization**: After applying a preset, users can modify field values as needed
+
+**Current implementation:**
+- Presets are defined in `src/presets.js`
+- Presets are validated against current vocabulary
+- Note: Preset UI may not be fully implemented; presets exist as data structure
+
+**Acceptance criteria**
+- Presets are validated against current vocabulary.
+- Presets can be applied to fill form fields.
+- Presets cover common token patterns per namespace.
 
 ---
 
 ## Configuration model
 
-Configuration is stored as JSON or YAML files within the codebase (recommended for MVP). The structure maps to the following data model:
+**Current implementation:**
+Vocabulary is hardcoded in `src/vocabulary.js` as a JavaScript object. The vocabulary structure is namespace-based.
 
-### Data structure: `framework_slots`
-One entry per slot defining the slot schema.
-- `framework_id` (string: "primitive" | "semantic" | "component")
-- `slot_id` (string: stable unique key)
-- `slot_group` (string: "prefix" | "base" | "suffix")
-- `slot_order` (number: integer)
-- `slot_label` (string: human-readable label)
-- `required` (boolean)
-- `allow_custom_terms` (boolean)
-- `min_len` (number, optional)
-- `max_len` (number, optional)
-- `pattern` (string, optional regex)
-- `notes` (string, optional)
-
-### Data structure: `slot_vocab`
-One entry per allowed vocabulary term.
-- `framework_id` (string)
-- `slot_id` (string)
-- `term` (string)
-- `description` (string)
-- `status` (string: "active" | "hidden" | "deprecated")
-
-### Data structure: `rules_dependencies` (optional)
-Defines conditional vocabulary rules between slots.
-- `framework_id` (string)
-- `if_slot_id` (string)
-- `if_term` (string or "*" for any)
-- `then_slot_id` (string)
-- `allow_terms` (string[], optional)
-- `block_terms` (string[], optional)
-- `message` (string)
-
-### Data structure: `settings`
-Framework-level settings.
-- `framework_id` (string)
-- `case_rule` (string, default: "kebab")
-- `reserved_terms` (string[]: array of reserved term strings)
-- `reserved_prefixes` (string[]: array of reserved prefix strings)
-
-### UI settings (not stored in config)
-These are managed in application state only:
-- `preview_separator` (string: user-selected; default "/"; allowed: "/" and "_")
-
-### Configuration file examples
-
-Here's an example JSON structure for a complete framework configuration:
-
-```json
-{
-  "framework_id": "primitive",
-  "slots": [
-    {
-      "slot_id": "category",
-      "slot_group": "prefix",
-      "slot_order": 1,
-      "slot_label": "Category",
-      "required": true,
-      "allow_custom_terms": false,
-      "min_len": 2,
-      "max_len": 20
+**Vocabulary structure:**
+```javascript
+VOCABULARY = {
+  namespaces: {
+    color: {
+      label: "Color",
+      description: "Color tokens for UI elements",
+      objects: [{ value, label, description }, ...],
+      bases: [{ value, label, description }, ...]
     },
-    {
-      "slot_id": "scale",
-      "slot_group": "base",
-      "slot_order": 2,
-      "slot_label": "Scale",
-      "required": true,
-      "allow_custom_terms": true,
-      "pattern": "^[0-9]+$"
+    space: { ... },
+    typography: { ... },
+    radius: { ... },
+    motion: {
+      // Special case: bases depend on object selection
+      basesByObject: {
+        duration: [{ value, label, description }, ...],
+        easing: [{ value, label, description }, ...],
+        delay: [{ value, label, description }, ...]
+      }
     }
-  ],
-  "vocabulary": [
-    {
-      "slot_id": "category",
-      "term": "color",
-      "description": "Color tokens",
-      "status": "active"
-    },
-    {
-      "slot_id": "category",
-      "term": "spacing",
-      "description": "Spacing tokens",
-      "status": "active"
-    },
-    {
-      "slot_id": "category",
-      "term": "typography",
-      "description": "Typography tokens",
-      "status": "active"
-    },
-    {
-      "slot_id": "scale",
-      "term": "50",
-      "description": "Scale value 50",
-      "status": "active"
-    },
-    {
-      "slot_id": "scale",
-      "term": "100",
-      "description": "Scale value 100",
-      "status": "active"
-    },
-    {
-      "slot_id": "scale",
-      "term": "500",
-      "description": "Scale value 500",
-      "status": "active"
-    },
-    {
-      "slot_id": "scale",
-      "term": "900",
-      "description": "Scale value 900",
-      "status": "active"
-    }
-  ],
-  "settings": {
-    "case_rule": "kebab",
-    "reserved_terms": [],
-    "reserved_prefixes": []
-  }
+  },
+  modifiers: [{ value, label, description }, ...]
 }
 ```
 
-Example for semantic framework:
+**Structure elements:**
+- **Category**: Top-level categories (color, space, typography, radius, motion)
+- **Objects**: Terms for object/component fields (varies by namespace)
+- **Bases**: Terms for base/category fields (varies by namespace)
+- **Conditional vocabulary**: Motion namespace has object-dependent bases (`basesByObject`)
+- **Modifiers**: Shared vocabulary for suffix modifier fields (variant, state, scale, mode)
 
-```json
-{
-  "framework_id": "semantic",
-  "slots": [
-    {
-      "slot_id": "category",
-      "slot_group": "prefix",
-      "slot_order": 1,
-      "slot_label": "Category",
-      "required": true,
-      "allow_custom_terms": false
-    },
-    {
-      "slot_id": "role",
-      "slot_group": "base",
-      "slot_order": 2,
-      "slot_label": "Role",
-      "required": true,
-      "allow_custom_terms": false
-    },
-    {
-      "slot_id": "use",
-      "slot_group": "suffix",
-      "slot_order": 3,
-      "slot_label": "Use",
-      "required": true,
-      "allow_custom_terms": false
-    },
-    {
-      "slot_id": "intent",
-      "slot_group": "suffix",
-      "slot_order": 4,
-      "slot_label": "Intent",
-      "required": true,
-      "allow_custom_terms": false
-    },
-    {
-      "slot_id": "emphasis",
-      "slot_group": "suffix",
-      "slot_order": 5,
-      "slot_label": "Emphasis",
-      "required": false,
-      "allow_custom_terms": true
-    }
-  ],
-  "vocabulary": [
-    {
-      "slot_id": "category",
-      "term": "color",
-      "description": "Color tokens",
-      "status": "active"
-    },
-    {
-      "slot_id": "role",
-      "term": "semantic",
-      "description": "Semantic role",
-      "status": "active"
-    },
-    {
-      "slot_id": "use",
-      "term": "background",
-      "description": "Background use",
-      "status": "active"
-    },
-    {
-      "slot_id": "use",
-      "term": "text",
-      "description": "Text use",
-      "status": "active"
-    },
-    {
-      "slot_id": "intent",
-      "term": "primary",
-      "description": "Primary intent",
-      "status": "active"
-    },
-    {
-      "slot_id": "intent",
-      "term": "secondary",
-      "description": "Secondary intent",
-      "status": "active"
-    },
-    {
-      "slot_id": "emphasis",
-      "term": "strong",
-      "description": "Strong emphasis",
-      "status": "active"
-    },
-    {
-      "slot_id": "emphasis",
-      "term": "weak",
-      "description": "Weak emphasis",
-      "status": "deprecated"
-    }
-  ],
-  "settings": {
-    "case_rule": "kebab",
-    "reserved_terms": ["default", "base"],
-    "reserved_prefixes": ["system"]
-  }
-}
-```
-
-**File organization example:**
-- Single file: `config/frameworks.json` — contains array of all framework configs
-- Per-framework: `config/primitive.json`, `config/semantic.json`, `config/component.json` — each contains one framework config
-- Separated: `config/schemas.json` (slots) + `config/vocabulary.json` (terms) — split structure
+**Access:**
+- Vocabulary is accessed via getter functions in `src/data.js`
+- Functions filter vocabulary based on namespace and current field values
+- Conditional vocabulary (like motion bases) is handled by specific getter functions
 
 ---
 
-## Data source implementation
+## Controlled vocabulary
 
-### Primary approach: JSON/YAML files in codebase
+### Semantic color tokens
 
-Configuration is stored as JSON or YAML files within the project structure, typically in a `src/config/` directory (or similar). This approach is recommended for MVP.
+This taxonomy applies **only to semantic color tokens** for the semantic framework. Primitive and component color tokens are explicitly out of scope.
 
-**File organization options:**
-- Single unified file: `config/frameworks.json` containing all frameworks
-- Per-framework files: `config/primitive.json`, `config/semantic.json`, `config/component.json`
-- Separate vocab files: `config/frameworks.json` (schemas) + `config/vocabulary.json` (terms)
+**Canonical structure:**
+```
+color / role / element / variant / emphasis / state
+```
 
-**Benefits:**
-- Version-controlled alongside code
-- No external API dependencies
-- Fast loading (no network requests)
-- Easy to update and iterate
-- Can be statically imported or fetched at runtime
+Only `role` and `element` are required. All other segments are optional and role-dependent.
 
-**Loading mechanism:**
-- Config files can be statically imported (ES modules) or fetched via fetch API
-- Load once at application startup
-- Cache in memory per framework after first load
-- Validate schema structure on load
+#### 1. Role (required)
 
-**Error handling:**
-- If config files fail to load: show error message, disable affected framework tabs
-- If config files are malformed: show validation error with details
-- Fallback: graceful degradation (disable functionality, show error state)
+Roles are the **primary semantic axis**. These are intentionally few and stable.
 
-**Important: Config vs Session state**
-- **Config data (JSON/YAML)**: Contains only predefined vocabulary terms and schemas. These are permanent and version-controlled.
-- **Session state**: Includes user-selected terms from config AND any custom terms entered by users. Custom terms are ephemeral and never saved to config files.
+| Role         | Definition                                    |
+| ------------ | --------------------------------------------- |
+| `surface`    | Backgrounds and surfaces that content sits on |
+| `content`    | Foreground content such as text and icons     |
+| `separator`  | Visual dividers and boundaries                |
+| `action`     | Interactive, user-initiated affordances       |
+| `selection`  | Indication of selection or current location   |
+| `focus`      | Keyboard and accessibility focus indicators   |
+| `feedback`   | System status and messaging                   |
+| `decorative` | Non-functional, expressive color usage        |
 
-### Alternative approach: External data sources (Phase 2+)
+**Rules:**
+- A token must have exactly one role
+- Roles must not reference components
+- Roles must remain stable across themes
 
-For future iterations, the same data structure can be loaded from external sources:
-- Google Sheets (via API)
-- Airtable (via API)
-- Headless CMS
-- Database
+#### 2. Element (required)
 
-The JSON/YAML structure serves as the canonical format, ensuring compatibility with any future migration.
+Elements describe **where the color is applied**, not what component it belongs to.
+
+**Allowed elements by role:**
+
+| Role         | Allowed Elements                                        |
+| ------------ | ------------------------------------------------------- |
+| `surface`    | `background`, `overlay`, `shadow`                       |
+| `content`    | `text`, `icon`                                          |
+| `separator`  | `border`, `divider`                                     |
+| `action`     | `background`, `on-background`, `link`                   |
+| `selection`  | `background`, `on-background`, `indicator`              |
+| `focus`      | `outline`, `halo`, `inner`                              |
+| `feedback`   | `background`, `on-background`, `text`, `icon`, `border` |
+| `decorative` | `background`, `on-background`, `text`, `icon`, `border` |
+
+**Rules:**
+- Elements must be visually literal (what is being colored)
+- No component names allowed
+- `on-background` is allowed only when contrast is meaningful
+
+#### 3. Variant (optional)
+
+Variants express **intent, hierarchy, or meaning**, not visual strength.
+
+**Allowed variants by role:**
+
+| Role         | Allowed Variants                                     |
+| ------------ | ---------------------------------------------------- |
+| `surface`    | `primary`, `secondary`, `tertiary`                   |
+| `content`    | `primary`, `secondary`, `tertiary`                   |
+| `separator`  | `primary`, `secondary`, `tertiary`                   |
+| `action`     | `primary`, `secondary`, `tertiary`, `negative`       |
+| `selection`  | `primary`, `secondary`                               |
+| `focus`      | `primary`, `secondary`                               |
+| `feedback`   | `neutral`, `positive`, `negative`, `warning`, `info` |
+| `decorative` | *(none — decorative uses color directly)*            |
+
+**Rules:**
+- Variants must be role-specific
+- Status variants (`positive`, `negative`, etc.) are only valid for `feedback`
+- Decorative tokens do not encode meaning via variants
+
+#### 4. Emphasis (optional)
+
+Emphasis expresses **relative visual strength**, not color value or brightness.
+
+| Emphasis Level |
+| -------------- |
+| `weakest`      |
+| `weak`         |
+| `default`      |
+| `strong`       |
+| `strongest`    |
+
+**Rules:**
+- Emphasis is optional but recommended
+- Emphasis must be meaningful in both light and dark themes
+- No color names or numeric scales allowed
+
+#### 5. State (optional)
+
+State captures **interaction or system changes**.
+
+| Common States |
+| ------------- |
+| `default`     |
+| `hover`       |
+| `active`      |
+| `pressed`     |
+| `selected`    |
+| `focus`       |
+| `disabled`    |
+
+**Rules:**
+- State is optional
+- Not all roles support all states
+- `feedback` tokens usually omit interaction states
+
+#### Example semantic color tokens
+
+**Surface:**
+- `color/surface/background/primary/default`
+- `color/surface/overlay/secondary/weak`
+
+**Content:**
+- `color/content/text/primary/default`
+- `color/content/icon/secondary/disabled`
+
+**Action:**
+- `color/action/background/primary/strong/hover`
+- `color/action/link/negative/default`
+
+**Feedback:**
+- `color/feedback/background/positive/default`
+- `color/feedback/text/warning/strong`
+
+**Focus:**
+- `color/focus/outline/primary/default`
+
+#### Design decisions
+
+- **No color names** in semantic tokens (except decorative)
+- **Decorative tokens are non-semantic** and must never be required for UX clarity
+- **Variants ≠ emphasis**: Variant = meaning, Emphasis = strength
+- **Semantic tokens never reference components**
+- **All semantic tokens must map to primitives**
+
+#### Enforcement strategy
+
+- Role → element → variant options are **progressively constrained**
+- Invalid combinations are blocked at creation time
+- Vocabulary filtering in comboboxes enforces valid combinations
+- Exported tokens are guaranteed semantically valid
 
 ---
 
 ## Technical architecture
 
-### Schema data structure
+### Current implementation (v1)
 
-The configuration files use a structured format that maps to the data model above. Here's a TypeScript-like type definition for reference:
+**Tech stack:**
+- **Build tool**: Vite v7.2.7
+- **Language**: Vanilla JavaScript (ES modules)
+- **Framework**: None (plain HTML/CSS/JS)
+- **File structure**: Modular ES6 modules in `src/` directory
 
-```typescript
-interface FrameworkConfig {
-  framework_id: "primitive" | "semantic" | "component";
-  slots: Slot[];
-  vocabulary: VocabularyTerm[];
-  settings: FrameworkSettings;
-  dependencies?: DependencyRule[];
-}
-
-interface Slot {
-  slot_id: string;
-  slot_group: "prefix" | "base" | "suffix";
-  slot_order: number;
-  slot_label: string;
-  required: boolean;
-  allow_custom_terms: boolean;
-  min_len?: number;
-  max_len?: number;
-  pattern?: string;
-  notes?: string;
-}
-
-interface VocabularyTerm {
-  slot_id: string;
-  term: string;
-  description: string;
-  status: "active" | "hidden" | "deprecated";
-}
-
-interface FrameworkSettings {
-  case_rule: string; // default: "kebab"
-  reserved_terms: string[];
-  reserved_prefixes: string[];
-}
-
-interface DependencyRule {
-  if_slot_id: string;
-  if_term: string | "*";
-  then_slot_id: string;
-  allow_terms?: string[];
-  block_terms?: string[];
-  message: string;
-}
+**Module structure:**
+```
+src/
+  app.js          # Main application logic, UI initialization, event handlers
+  data.js         # Vocabulary getter functions, validation helpers
+  vocabulary.js   # Hardcoded vocabulary data structure
+  validation.js   # Validation engine (real-time validation)
+  format.js       # Token name formatting (segment joining with separators)
+  history.js      # History management (add, remove, render, clear)
+  storage.js      # localStorage utilities (history, theme preferences)
+  presets.js      # Preset definitions and validation
+  toast.js        # Toast notification system
+  dom.js          # DOM utilities (selectors, helpers)
 ```
 
-### Validation engine
+**State management:**
+- **Per-framework state**: Object storing field values for each framework (primitive, semantic, component)
+  - Fields: `namespace`, `prefixSystem`, `prefixTheme`, `prefixDomain`, `baseCategory`, `baseConcept`, `baseProperty`, `objectGroup`, `objectComponent`, `objectElement`, `modifiers`
+  - State preserved independently per framework when switching tabs
+- **UI state**: Active framework, format separator, field visibility
+- **Validation state**: Errors and warnings per field, computed in real-time
+- **History state**: Managed via localStorage, separate from form state
 
-Validation runs in real-time on every state change:
+**Vocabulary access:**
+- Vocabulary loaded from `vocabulary.js` at module import time
+- Getter functions in `data.js` provide filtered vocabulary based on:
+  - Namespace selection
+  - Current field values (for conditional vocabulary)
+  - Framework-specific field types
+- Conditional vocabulary: Motion namespace uses `basesByObject` structure
 
-1. **Slot-level validation**: Checks each slot's value against its constraints
-   - Required field check
-   - Min/max length (if specified)
-   - Pattern/regex match (if specified)
-   - Character constraints (R8)
+**Validation engine** (`validation.js`):
+- Runs in real-time on every state change
+- **Field-level validation**:
+  - Required field checks (framework-specific)
+  - Character constraint validation (regex: `/[^a-z0-9-]/`)
+  - Vocabulary validation (checks if value is in allowed vocabulary)
+- **Error aggregation**: Collects all errors and warnings
+  - Errors block Copy action
+  - All errors displayed inline per field
+  - Most critical error shown in preview status area
 
-2. **Framework-level validation**: Checks against framework settings
-   - Reserved terms/prefixes check
-   - Uniqueness across slots (R6)
-   - Dependency rules (if enabled)
+**Format engine** (`format.js`):
+- Joins field segments with selected separator (`/`, `_`, or `.`)
+- Filters out empty segments
+- Supports three format types: slash (default), underscore, dot
 
-3. **Normalization**: Custom terms are normalized (R5) before validation
-   - Applied before uniqueness checks
-   - Normalized form is what appears in preview
+**History system** (`history.js`):
+- Stores last 10 copied token configurations
+- Deduplication: Replaces duplicates with most recent
+- localStorage persistence: `token-namer:history` key
+- Actions: Add, remove, clear, render with callbacks (fill, copy, remove)
 
-4. **Error aggregation**: Collects all errors/warnings
-   - Errors block Copy action
-   - Warnings allow Copy but show guidance
+### Future state (v2 - schema-driven)
 
-### State management
+The planned migration to schema-driven architecture would introduce:
 
-**Configuration state (loaded from JSON/YAML):**
-- Loaded once at application startup
-- Cached in memory per framework
-- Read-only during runtime
-- Contains only predefined vocabulary and schema
+- **Schema loader** (`schema.js`): Load and parse JSON/YAML configuration files
+- **Framework configurations**: Separate config per framework or unified config file
+- **Dynamic field rendering**: Fields generated from schema instead of hardcoded
+- **Enhanced validation**: Schema-driven constraints (min/max length, patterns)
+- **Term status support**: Active/hidden/deprecated status with UI indicators
 
-**Session state (runtime):**
-- Per-framework state: stores selected values for each slot
-  - Slot values can be predefined terms (from config) or custom terms (user-entered)
-  - Custom terms are stored separately to distinguish from config vocabulary
-- Tab/active framework: tracks which framework tab is currently selected
-- Preview separator: user-selected separator (`/` or `_`)
-- Validation state: current errors/warnings per slot
-- Focus state: which slot is currently focused
-
-**State separation:**
-- Config data (JSON/YAML) is separate from session state
-- Custom terms exist only in session state, never in config
-- On tab switch: session state per framework is preserved independently
-- On reset: clears session state for active framework only
-
-### Slot group rendering
-
-Slot groups (prefix/base/suffix) affect UI organization:
-
-- **Left pane (Node library)**: Vocabulary terms are grouped by `slot_group`
-  - Sections labeled "Prefix", "Base", "Suffix"
-  - Terms within each section are for slots that belong to that group
-  - Multiple slots can share the same group
-
-- **Right pane (Assembler)**: Slots are rendered in order but can be visually grouped
-  - Slots render in `slot_order` sequence
-  - Visual grouping by `slot_group` helps users understand structure
-  - Group headers optional but helpful for clarity
-
-### Vocabulary filtering
-
-Terms are filtered based on status:
-
-- **active**: Shown normally, selectable
-- **hidden**: Not shown in node library (unless filter enabled for admin/debug)
-- **deprecated**: Shown with warning styling, selectable but shows warning message
-
-Filtering happens at render time:
-- Default: show active + deprecated (with warning styling)
-- Optional toggle: show/hide deprecated terms
-- Hidden terms never shown to users (reserved for future use)
+The current hardcoded vocabulary would be migrated to the schema format described in the Configuration model section.
 
 ---
 
 ## Caching and performance
-- Cache config in memory per framework after first load.
-- Optional localStorage cache for config with a TTL and/or version hash (useful for external sources).
-- No caching of generated names beyond the current session state.
-- Custom terms exist only in session state and are not cached.
+
+**Current implementation:**
+- Vocabulary loaded once at module import time (hardcoded in `vocabulary.js`)
+- No runtime caching needed (vocabulary is static during session)
+- History stored in localStorage (persists across sessions)
+- No caching of generated token names beyond current session state
+- Custom terms exist only in session state and are not cached
+
+**Future (schema-driven):**
+- Cache loaded schema/config in memory per framework after first load
+- Optional localStorage cache for config with TTL and/or version hash (useful if loading from external sources)
+- Custom terms remain session-only and never cached
 
 ---
 
@@ -912,32 +899,36 @@ Filtering happens at render time:
 **Tab navigation:**
 - Tab key: moves focus forward through interactive elements in logical order
 - Shift+Tab: moves focus backward
-- Navigation order: Framework tabs → Slots (in slot_order) → Node cards → Preview separator → Copy/Reset buttons
+- Navigation order: Framework tabs → Fields (in order) → Format selector → Copy buttons
 
 **Framework tabs:**
 - Arrow keys (left/right): navigate between framework tabs
 - Enter/Space: activates selected tab
-- Home/End: jump to first/last tab
+- Home/End: jump to first/last tab (if implemented)
 
-**Slots:**
-- Tab: moves focus to next slot in `slot_order`
-- Shift+Tab: moves focus to previous slot
-- Enter/Space on focused slot: activates slot (opens selection or focuses node library)
-- Delete/Backspace on focused filled slot: clears slot value
+**Form fields (comboboxes):**
+- Tab: moves focus to next field in order
+- Shift+Tab: moves focus to previous field
+- Arrow keys (up/down) in combobox: navigate through filtered suggestions
+- Enter: selects highlighted suggestion
+- Escape: closes suggestion dropdown
+- Delete/Backspace: clears field value
 
-**Node library:**
-- Arrow keys (up/down): navigate between node cards
-- Arrow keys (left/right): navigate between sections (Prefix/Base/Suffix)
-- Enter/Space: selects focused node card
-- Escape: returns focus to slot assembler
+**Combobox autocomplete:**
+- Typing: filters vocabulary suggestions in real-time
+- Arrow keys (up/down): navigate suggestions
+- Enter: selects highlighted suggestion
+- Escape: closes dropdown
+- Click: opens/closes dropdown
 
 **Preview separator:**
-- Arrow keys (left/right): changes separator selection
-- Enter/Space: toggles separator (if implemented as toggle)
+- Standard dropdown navigation (Tab to focus, Arrow keys to select option)
+- Enter: confirms selection
 
-**Copy/Reset buttons:**
+**Copy buttons:**
 - Enter/Space: activates button
 - Copy button disabled state: announced by screen reader, focusable but not activatable
+- Cmd/Ctrl+C: Keyboard shortcut to copy when preview area is focused
 
 ### Screen reader support
 
@@ -949,18 +940,22 @@ Filtering happens at render time:
   - `aria-selected`: indicates active tab
   - `aria-controls`: links tab to its panel
 
-- **Slots**:
-  - Role: `group` or `textbox` (depending on implementation)
-  - `aria-label`: uses `slot_label` from schema (e.g., "Category, required")
-  - `aria-required`: `true` for required slots
+- **Form fields (comboboxes)**:
+  - Role: `combobox` on container, `textbox` on input
+  - `aria-label`: field label with required indicator if applicable (e.g., "Category, required")
+  - `aria-required`: `true` for required fields
+  - `aria-autocomplete`: `"list"` to indicate autocomplete behavior
+  - `aria-controls`: points to listbox ID
+  - `aria-expanded`: `"true"` when dropdown is open, `"false"` when closed
   - `aria-describedby`: points to error/warning message element (if present)
-  - `aria-invalid`: `true` when slot has error, `false` otherwise
+  - `aria-invalid`: `true` when field has error, `false` otherwise
+  - `aria-activedescendant`: points to highlighted suggestion when navigating
   - `aria-live="polite"`: on error message containers
 
-- **Node cards**:
-  - Role: `button`
-  - `aria-label`: term name + description (e.g., "color: Color tokens")
-  - `aria-pressed`: indicates if term is selected/used in assembler
+- **Combobox listbox (suggestions)**:
+  - Role: `listbox` on container
+  - Role: `option` on each suggestion item
+  - `aria-selected`: `"true"` on highlighted option, `"false"` on others
 
 - **Live preview**:
   - Role: `region` or `textbox`
@@ -1021,36 +1016,55 @@ Track:
 
 ## Migration path from current implementation
 
-### Current state (existing codebase)
-The current implementation uses hardcoded data structures in `src/data.js`:
-- `NAMESPACES`: array of namespace strings
-- `OBJECTS_BY_NAMESPACE`: object mapping namespaces to objects
-- `BASES_BY_NAMESPACE`: object mapping namespaces to bases
-- Simple validation and formatting functions
+### Current state (v1 - implemented)
+The current implementation includes:
+- ✅ **UI**: Accordion-based form with combobox inputs for term selection
+- ✅ **Frameworks**: Three tabs (Primitive, Semantic, Component) with framework switching
+- ✅ **Vocabulary**: Hardcoded in `src/vocabulary.js` with namespace-based structure
+- ✅ **Data layer**: `src/data.js` provides getter functions for vocabulary terms
+- ✅ **Validation**: Real-time validation with character constraints and required field checks
+- ✅ **Formatting**: Token name generation with three separator options (slash, underscore, dot)
+- ✅ **Copy functionality**: Copy token name and JSON representation
+- ✅ **History**: Browser localStorage-based history (last 10 entries)
+- ✅ **Presets**: Preset definitions in `src/presets.js`
+- ✅ **Toast notifications**: User feedback for copy actions
+- ✅ **Framework state management**: Independent state per framework tab
 
-### Migration approach
+### Future migration (v2 - schema-driven)
 
-1. **Create configuration files**: Convert hardcoded data to JSON/YAML format
-   - Map current `NAMESPACES` to framework slot vocabulary
-   - Map `OBJECTS_BY_NAMESPACE` to slot vocabulary terms
-   - Map `BASES_BY_NAMESPACE` to slot vocabulary terms
-   - Create slot schema definitions based on current structure
+**Migration goals:**
+1. **Create configuration files**: Convert hardcoded vocabulary to JSON/YAML format
+   - Map current namespace-based vocabulary to framework/slot-based structure
+   - Map `objects` and `bases` from vocabulary.js to slot vocabulary terms
+   - Handle conditional vocabulary (e.g., motion.basesByObject)
+   - Create slot schema definitions based on current field structure
 
 2. **Implement schema engine**: Build system to load and parse config files
-   - Load JSON/YAML files at startup
+   - Create `src/schema.js` to load JSON/YAML files at startup
    - Parse and validate structure
-   - Cache in memory
+   - Cache configurations in memory per framework
+   - Provide API functions to query vocabulary by framework, slot, and context
 
-3. **Refactor UI**: Update from simple form to node library + assembler pattern
-   - Convert dropdown selects to node card selection
-   - Implement slot-based assembler UI
-   - Add framework tabs
+3. **Update data layer**: Refactor `src/data.js` to use schema loader
+   - Replace hardcoded imports with schema loader imports
+   - Update getter functions to query from loaded schema
+   - Maintain backward compatibility during migration
+   - Support both namespace-based queries and slot-based queries
 
-4. **Preserve functionality**: Ensure existing features continue to work
-   - Validation rules (enhanced with new schema-driven validation)
-   - Format options (preview separator)
+4. **Enhance validation**: Add schema-driven constraints
+   - Support min/max length constraints from schema
+   - Support pattern/regex constraints from schema
+   - Add term status support (active/hidden/deprecated)
+   - Implement dependency rules if needed
+
+5. **Preserve existing functionality**: Ensure all current features continue to work
+   - Accordion UI pattern (can be enhanced but not replaced)
+   - Combobox inputs with autocomplete
+   - Framework tabs and state management
+   - History system
+   - Presets system
    - Copy functionality
-   - History (if applicable)
+   - Format options
 
 ### File structure recommendation
 
@@ -1071,31 +1085,37 @@ src/
 
 ## Milestones
 
-### Phase 0 — Definition
-- Draft slot schemas for all three frameworks
-- Create vocabulary lists for each framework
-- Define slot groups (prefix/base/suffix) and ordering
-- Confirm reserved terms/prefixes and slot-level patterns
-- Decide deprecated-term behavior (warning vs blocked)
-- Create initial JSON/YAML configuration files
+### Phase 0 — Completed ✅
+- ✅ Three framework tabs (Primitive/Semantic/Component)
+- ✅ Accordion-based form UI with combobox inputs
+- ✅ Live preview with category pills and format selector
+- ✅ Copy functionality (token name and JSON)
+- ✅ History system (localStorage, last 10 entries)
+- ✅ Presets definitions (per namespace)
+- ✅ Real-time validation (required fields, character constraints)
+- ✅ Framework state management (independent per tab)
+- ✅ Toast notifications
+- ✅ Vocabulary structure (hardcoded, namespace-based)
 
-### Phase 1 — MVP
+### Phase 1 — MVP (Current - v1)
+**Status: Implemented ✅**
+
+All Phase 0 features are complete. The tool is fully functional with hardcoded vocabulary.
+
+### Phase 2 — Schema-driven (Future - v2)
 - Config loading: JSON/YAML file loading and parsing
-- Schema engine: slot rendering and vocabulary lookup
-- 3 tabs (Primitive/Semantic/Component) with framework switching
-- Node library: vocabulary display with Prefix/Base/Suffix grouping
-- Slot assembler: ordered slots with chip-based value display
-- Live preview: real-time token name generation with separator toggle
-- Copy + reset: copy to clipboard and clear slots
-- Preview separator toggle (`/` default, `_` optional)
-- Custom term creation with normalization + uniqueness checks
-- Basic validation: required slots, character constraints, uniqueness
+- Schema engine: dynamic slot rendering and vocabulary lookup from config
+- Migrate hardcoded vocabulary to JSON/YAML configuration files
+- Schema-driven validation: Support min/max length, patterns from schema
+- Term status support: Active/hidden/deprecated with UI indicators
+- Dependency rules: Conditional vocabulary based on field values
 
-### Phase 1.5 (optional)
-- Dependency rules (conditional vocabulary)
+### Phase 3 — Enhancements (Future)
+- Reset functionality (clear form for active framework)
+- Improved search/filter in combobox inputs
 - Deprecated term warnings + guidance messages
-- Better discoverability: improved search, recent terms, presets
 - Enhanced error messages with actionable guidance
+- Preset UI: Visual preset selection interface
 
 ---
 
@@ -1117,9 +1137,11 @@ The following clarifications ensure consistency across the PRD:
 
 3. **Validation scope**: Uniqueness (R6) checks both config vocabulary AND session custom terms, but custom terms are never added to config.
 
-4. **Preview separator**: User preference, stored in session state only, default `/`, alternative `_`.
+4. **Preview separator**: User preference, stored in session state only, default `/`, alternatives `_` and `.`.
 
 5. **Framework independence**: Each framework (Primitive/Semantic/Component) maintains its own session state independently. Switching tabs preserves state per framework.
+
+6. **History persistence**: History is stored in localStorage and persists across page refreshes. Custom terms in form state are session-only.
 
 6. **Reset behavior**: Clears only session state for active framework, does not affect other tabs or separator selection.
 
