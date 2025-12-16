@@ -1,300 +1,127 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Token Namer</title>
-  <meta name="description" content="Generate consistent, structured design token names." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css" />
-</head>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Token Namer</title>
+    <meta name="description" content="Generate consistent, structured design token names." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true">◉</span>
+          <span class="brand-name">Token Namer</span>
+        </a>
 
-<body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="/">
-        <span class="brand-mark" aria-hidden="true">◉</span>
-        <span class="brand-name">Token Namer</span>
-      </a>
+        <nav class="nav">
+          <a href="#tool">Tool</a>
+          <a href="/docs/documentation.html">Docs</a>
+        </nav>
 
-      <nav class="nav">
-        <a href="#tool">Tool</a>
-        <a href="/docs/documentation.html">Docs</a>
-      </nav>
+        <div class="header-cta"></div>
 
-      <div class="header-cta">
+        <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
       </div>
 
-      <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
+      <div class="mobile-nav" hidden>
+        <a href="#tool">Tool</a>
+        <a href="/docs/documentation.html">Docs</a>
+      </div>
+    </header>
 
-    <div class="mobile-nav" hidden>
-      <a href="#tool">Tool</a>
-      <a href="/docs/documentation.html">Docs</a>
-    </div>
-  </header>
+    <main>
+      <section id="tool" class="section tool">
+        <div class="container tool-container">
+          <div class="section-head">
+            <h1 class="tool-title">Token Naming Tool</h1>
+            <p>Generate consistent token names using Primitive, Semantic, and Component frameworks.</p>
+          </div>
 
-  <main>
-    <section id="tool" class="section tool">
-      <div class="container tool-container">
-        <div class="section-head">
-          <h1 class="tool-title">Token Naming Tool</h1>
-          <p>Generate consistent token names using structured naming conventions.</p>
-        </div>
+          <div class="framework-tabs" role="tablist" aria-label="Framework selection">
+            <button type="button" class="framework-tab is-active" role="tab" aria-selected="true" data-framework="primitive">
+              Primitive
+            </button>
+            <button type="button" class="framework-tab" role="tab" aria-selected="false" data-framework="semantic">
+              Semantic
+            </button>
+            <button type="button" class="framework-tab" role="tab" aria-selected="false" data-framework="component">
+              Component
+            </button>
+          </div>
 
-        <div class="framework-tabs" role="tablist" aria-label="Token tier">
-          <button
-            type="button"
-            class="framework-tab is-active"
-            role="tab"
-            aria-selected="true"
-            aria-controls="tokenForm"
-            data-framework="primitive"
-          >
-            Primitive
-          </button>
-          <button
-            type="button"
-            class="framework-tab"
-            role="tab"
-            aria-selected="false"
-            aria-controls="tokenForm"
-            data-framework="semantic"
-          >
-            Semantic
-          </button>
-          <button
-            type="button"
-            class="framework-tab"
-            role="tab"
-            aria-selected="false"
-            aria-controls="tokenForm"
-            data-framework="component"
-          >
-            Component
-          </button>
-        </div>
+          <div class="preview-card">
+            <div class="preview-head">
+              <div class="preview-label">Live preview</div>
+              <div class="format">
+                <label class="sr-only" for="format">Format</label>
+                <select id="format" name="format">
+                  <option value="slash">Slash</option>
+                  <option value="underscore">Underscore</option>
+                </select>
+              </div>
+            </div>
 
-        <div class="preview-card">
-          <div class="preview-head">
-            <div class="preview-label">Live preview</div>
-            <div class="format">
-              <label class="sr-only" for="format">Format</label>
-              <select id="format" name="format">
-                <option value="slash">Slash</option>
-                <option value="dot">Dot</option>
-                <option value="underscore">Underscore</option>
-              </select>
+            <div class="preview-content">
+              <div id="preview" class="preview-token" tabindex="0" role="group" aria-label="Token name preview"></div>
+              <div id="previewPills" class="preview-pills"></div>
+            </div>
+            <div id="status" class="status" aria-live="polite"></div>
+
+            <div class="actions">
+              <button class="btn btn-primary" type="button" id="copyName">Copy token name</button>
+              <button class="btn btn-ghost" type="button" id="copyJson">Copy JSON</button>
+              <button class="btn btn-ghost-danger" type="button" id="clearName">Clear name</button>
             </div>
           </div>
 
-          <div id="preview" class="preview-token" tabindex="0" role="group" aria-label="Token name preview"></div>
-          <div id="status" class="status" aria-live="polite"></div>
+          <form id="tokenForm" class="tool-form" novalidate>
+            <section class="form-group" aria-label="Prefix">
+              <h2 class="group-title">Prefix (optional)</h2>
+              <div id="prefixFields" class="field-grid"></div>
+            </section>
 
-          <div class="actions">
-            <button class="btn btn-primary" type="button" id="copyName">Copy token name</button>
-            <button class="btn btn-ghost" type="button" id="copyJson">Copy JSON</button>
+            <section class="form-group" aria-label="Token fields">
+              <h2 class="group-title">Token fields</h2>
+              <div id="frameworkFields" class="field-grid"></div>
+            </section>
+          </form>
+
+          <section class="history" aria-label="History">
+            <div class="history-head">
+              <h2 class="group-title">History</h2>
+              <button class="btn btn-ghost btn-sm" type="button" id="clearHistory">Clear</button>
+            </div>
+            <ul id="history" class="history-list"></ul>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-left">
+          <div class="brand brand-footer">
+            <span class="brand-mark" aria-hidden="true">◉</span>
+            <span class="brand-name">Token Namer</span>
           </div>
+          <p class="fineprint">© <span id="year"></span> Token Namer.</p>
         </div>
 
-        <form id="tokenForm" class="tool-form" novalidate>
-                <div class="field accordion-container" id="prefixAccordionContainer">
-                  <button type="button" class="accordion-header" aria-expanded="false" aria-controls="prefixContent" id="prefixAccordionBtn">
-                    <div class="field-label">
-                      <label><span>Prefix node</span></label>
-                    </div>
-                    <span class="accordion-icon" aria-hidden="true">▼</span>
-                  </button>
-                  <div id="prefixContent" class="accordion-content" hidden>
-                    <div class="prefix-add-buttons">
-                      <button type="button" class="prefix-add-btn" data-prefix-type="system" id="addPrefixSystem">
-                        <span>+ System</span>
-                      </button>
-                      <button type="button" class="prefix-add-btn" data-prefix-type="theme" id="addPrefixTheme">
-                        <span>+ Theme</span>
-                      </button>
-                      <button type="button" class="prefix-add-btn" data-prefix-type="domain" id="addPrefixDomain">
-                        <span>+ Domain</span>
-                      </button>
-                    </div>
-                    <div id="prefixFields" class="prefix-fields"></div>
-                    <div class="field-help" id="help-namespace" hidden>Prefix categories are optional. Click a button to add a dropdown field.</div>
-                  </div>
-                </div>
-
-                <!-- Base section (Primitive and Semantic frameworks) -->
-                <div class="field accordion-container" id="baseSection" data-frameworks="primitive,semantic">
-                  <button type="button" class="accordion-header" aria-expanded="false" aria-controls="baseContent" id="baseAccordionBtn">
-                    <div class="field-label">
-                      <label><span>Standard node</span></label>
-                    </div>
-                    <span class="accordion-icon" aria-hidden="true">▼</span>
-                  </button>
-                  <div id="baseContent" class="accordion-content" hidden>
-                    <div class="node-options">
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="baseCategoryCheck" name="baseCategoryCheck" class="node-checkbox">
-                          <span>Category</span>
-                          <span class="req" aria-hidden="true" id="req-baseCategory">*</span>
-                        </label>
-                        <div class="node-input-wrapper" id="baseCategoryInputWrapper" style="display: none;">
-                          <input type="text" id="baseCategory" name="baseCategory" class="node-input" placeholder="Enter category value">
-                        </div>
-                        <div class="field-msg" id="msg-baseCategory" aria-live="polite"></div>
-                      </div>
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="baseConceptCheck" name="baseConceptCheck" class="node-checkbox">
-                          <span>Concept</span>
-                          <span class="req" aria-hidden="true" id="req-baseConcept" style="display: none;">*</span>
-                        </label>
-                        <div class="node-input-wrapper" id="baseConceptInputWrapper" style="display: none;">
-                          <input type="text" id="baseConcept" name="baseConcept" class="node-input" placeholder="Enter concept value">
-                        </div>
-                        <div class="field-msg" id="msg-baseConcept" aria-live="polite"></div>
-                      </div>
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="basePropertyCheck" name="basePropertyCheck" class="node-checkbox">
-                          <span>Property</span>
-                          <span class="req" aria-hidden="true" id="req-baseProperty" style="display: none;">*</span>
-                        </label>
-                        <div class="node-input-wrapper" id="basePropertyInputWrapper" style="display: none;">
-                          <input type="text" id="baseProperty" name="baseProperty" class="node-input" placeholder="Enter property value">
-                        </div>
-                        <div class="field-msg" id="msg-baseProperty" aria-live="polite"></div>
-                      </div>
-                    </div>
-                    <div class="field-help" id="help-base" hidden>Base tokens define category, concept, and property. Check fields and enter values. Category is required for primitive tokens; all three are required for semantic tokens.</div>
-                  </div>
-                </div>
-
-                <!-- Object section (Component framework) -->
-                <div class="field accordion-container" id="objectSection" data-frameworks="component" style="display: none;">
-                  <button type="button" class="accordion-header" aria-expanded="false" aria-controls="objectContent" id="objectAccordionBtn">
-                    <div class="field-label">
-                      <label><span>Standard node</span></label>
-                    </div>
-                    <span class="accordion-icon" aria-hidden="true">▼</span>
-                  </button>
-                  <div id="objectContent" class="accordion-content" hidden>
-                    <div class="node-options">
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="objectGroupCheck" name="objectGroupCheck" class="node-checkbox">
-                          <span>Group</span>
-                        </label>
-                        <div class="node-input-wrapper" id="objectGroupInputWrapper" style="display: none;">
-                          <input type="text" id="objectGroup" name="objectGroup" class="node-input" placeholder="Enter group value">
-                        </div>
-                        <div class="field-msg" id="msg-objectGroup" aria-live="polite"></div>
-                      </div>
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="objectComponentCheck" name="objectComponentCheck" class="node-checkbox">
-                          <span>Component</span>
-                          <span class="req" aria-hidden="true" id="req-objectComponent">*</span>
-                        </label>
-                        <div class="node-input-wrapper" id="objectComponentInputWrapper" style="display: none;">
-                          <input type="text" id="objectComponent" name="objectComponent" class="node-input" placeholder="Enter component value">
-                        </div>
-                        <div class="field-msg" id="msg-objectComponent" aria-live="polite"></div>
-                      </div>
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="objectElementCheck" name="objectElementCheck" class="node-checkbox">
-                          <span>Element</span>
-                          <span class="req" aria-hidden="true" id="req-objectElement">*</span>
-                        </label>
-                        <div class="node-input-wrapper" id="objectElementInputWrapper" style="display: none;">
-                          <input type="text" id="objectElement" name="objectElement" class="node-input" placeholder="Enter element value">
-                        </div>
-                        <div class="field-msg" id="msg-objectElement" aria-live="polite"></div>
-                      </div>
-                    </div>
-                    <div class="field-help" id="help-object" hidden>Object tokens define group (optional), component, and element. Check fields and enter values. Component and element are required.</div>
-                  </div>
-                </div>
-
-                <div class="field accordion-container" id="suffixAccordionContainer">
-                  <button type="button" class="accordion-header" aria-expanded="false" aria-controls="suffixContent" id="suffixAccordionBtn">
-                    <div class="field-label">
-                      <label><span>Suffix node</span></label>
-                    </div>
-                    <span class="accordion-icon" aria-hidden="true">▼</span>
-                  </button>
-                  <div id="suffixContent" class="accordion-content" hidden>
-                    <div class="node-options" aria-describedby="help-modifier">
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="variantCheck" name="variantCheck" class="node-checkbox">
-                          <span>Variant</span>
-                        </label>
-                        <div class="node-input-wrapper" id="variantInputWrapper" style="display: none;">
-                          <input type="text" id="variant" name="variant" class="node-input" placeholder="Enter variant value">
-                        </div>
-                      </div>
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="stateCheck" name="stateCheck" class="node-checkbox">
-                          <span>State</span>
-                        </label>
-                        <div class="node-input-wrapper" id="stateInputWrapper" style="display: none;">
-                          <input type="text" id="state" name="state" class="node-input" placeholder="Enter state value">
-                        </div>
-                      </div>
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="scaleCheck" name="scaleCheck" class="node-checkbox">
-                          <span>Scale</span>
-                        </label>
-                        <div class="node-input-wrapper" id="scaleInputWrapper" style="display: none;">
-                          <input type="text" id="scale" name="scale" class="node-input" placeholder="Enter scale value">
-                        </div>
-                      </div>
-                      <div class="node-option">
-                        <label class="node-checkbox-label">
-                          <input type="checkbox" id="modeCheck" name="modeCheck" class="node-checkbox">
-                          <span>Mode</span>
-                        </label>
-                        <div class="node-input-wrapper" id="modeInputWrapper" style="display: none;">
-                          <input type="text" id="mode" name="mode" class="node-input" placeholder="Enter mode value">
-                        </div>
-                      </div>
-                    </div>
-                    <div class="field-help" id="help-modifier" hidden>Optional modifiers that describe variant, state, scale, or mode. Check fields and enter values. Any entered values become suffix segments in the token name.</div>
-                    <div class="field-msg" id="msg-modifier" aria-live="polite"></div>
-                  </div>
-                </div>
-              </form>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container footer-inner">
-      <div class="footer-left">
-        <div class="brand brand-footer">
-          <span class="brand-mark" aria-hidden="true">◉</span>
-          <span class="brand-name">Token Namer</span>
+        <div class="footer-links">
+          <a href="#tool">Tool</a>
+          <a href="/docs/documentation.html">Docs</a>
         </div>
-        <p class="fineprint">© <span id="year"></span> Token Namer. All rights reserved.</p>
       </div>
+    </footer>
 
-      <div class="footer-links">
-        <a href="#tool">Tool</a>
-        <a href="/docs/documentation.html">Docs</a>
-      </div>
-    </div>
-  </footer>
-
-  <div id="toastRoot" class="toasts" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="/src/app.js"></script>
-</body>
+    <div id="toastRoot" class="toasts" aria-live="polite" aria-atomic="true"></div>
+    <script type="module" src="/src/app.js"></script>
+  </body>
 </html>
-

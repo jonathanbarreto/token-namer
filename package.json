@@ -1,7 +1,7 @@
 {
   "name": "token-namer",
   "version": "1.0.0",
-  "description": "Token Namer landing page",
+  "description": "Generate consistent, structured design token names.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,3 +11,4 @@
     "vite": "^7.2.7"
   }
 }
+

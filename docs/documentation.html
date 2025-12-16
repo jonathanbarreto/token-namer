@@ -1,106 +1,84 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Token Namer — Documentation</title>
-  <meta name="description" content="Naming convention reference and examples for Token Namer." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css" />
-</head>
-<body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="/">
-        <span class="brand-mark" aria-hidden="true">◉</span>
-        <span class="brand-name">Token Namer</span>
-      </a>
-
-      <nav class="nav">
-        <a href="/#tool">Tool</a>
-        <a href="/docs/documentation.html">Docs</a>
-      </nav>
-
-      <div class="header-cta">
-      </div>
-
-      <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
-
-    <div class="mobile-nav" hidden>
-      <a href="/#tool">Tool</a>
-      <a href="/docs/documentation.html">Docs</a>
-    </div>
-  </header>
-
-  <main>
-    <section class="section">
-      <div class="container">
-        <div class="section-head">
-          <h1>Documentation</h1>
-          <p>How to build consistent token names, plus examples.</p>
-        </div>
-
-        <div class="field">
-          <h2>Naming convention</h2>
-          <p>
-            Use <code>namespace/object/base/modifier</code>. The modifier segment is optional; in the tool’s preview, empty segments appear as <code>_</code>.
-          </p>
-        </div>
-
-        <div class="spacer-sm"></div>
-
-        <div class="field">
-          <h2>Segments</h2>
-          <p style="margin-bottom:10px;">
-            Each segment should be lowercase and kebab-case (letters, numbers, and hyphens).
-          </p>
-          <ul>
-            <li><strong>namespace</strong>: category (e.g. <code>color</code>, <code>space</code>, <code>typography</code>).</li>
-            <li><strong>object</strong>: what it applies to (e.g. <code>text</code>, <code>background</code>).</li>
-            <li><strong>base</strong>: semantic intent or role (e.g. <code>primary</code>, <code>default</code>, <code>body</code>).</li>
-            <li><strong>modifier</strong>: optional state/variation (e.g. <code>hover</code>, <code>disabled</code>).</li>
-          </ul>
-        </div>
-
-        <div class="spacer-sm"></div>
-
-        <div class="field">
-          <h2>Examples</h2>
-          <ul style="line-height:1.9;">
-            <li><code>color/text/primary</code></li>
-            <li><code>color/text/primary/hover</code></li>
-            <li><code>space/md/default</code></li>
-            <li><code>typography/font-size/body</code></li>
-            <li><code>motion/duration/fast</code></li>
-          </ul>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container footer-inner">
-      <div class="footer-left">
-        <div class="brand brand-footer">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Token Namer — Documentation</title>
+    <meta name="description" content="How to use Token Namer." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true">◉</span>
           <span class="brand-name">Token Namer</span>
-        </div>
-        <p class="fineprint">© <span id="year"></span> Token Namer. All rights reserved.</p>
+        </a>
+        <nav class="nav">
+          <a href="/#tool">Tool</a>
+          <a href="/docs/documentation.html">Docs</a>
+        </nav>
+        <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
       </div>
-
-      <div class="footer-links">
+      <div class="mobile-nav" hidden>
         <a href="/#tool">Tool</a>
         <a href="/docs/documentation.html">Docs</a>
       </div>
-    </div>
-  </footer>
+    </header>
 
-  <div id="toastRoot" class="toasts" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="/src/app.js"></script>
-</body>
+    <main>
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h1>Documentation</h1>
+            <p>Token Namer generates token names from a set of fields. The UI is section-based (no accordions).</p>
+          </div>
+
+          <div class="preview-card">
+            <h2 class="group-title">Frameworks</h2>
+            <p class="status">
+              <strong>Primitive:</strong> <code>&lt;category&gt;/&lt;set&gt;/&lt;step&gt;/&lt;variant?&gt;</code><br />
+              <strong>Semantic:</strong> <code>&lt;domain&gt;/&lt;object&gt;/&lt;role&gt;/&lt;context?&gt;/&lt;state?&gt;/&lt;emphasis?&gt;</code><br />
+              <strong>Component:</strong> <code>component/&lt;component&gt;/&lt;part&gt;/&lt;property&gt;/&lt;variant?&gt;/&lt;state?&gt;/&lt;context?&gt;</code>
+            </p>
+            <p class="status">All fields accept custom input; values are normalized to kebab-case.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-left">
+          <div class="brand brand-footer">
+            <span class="brand-mark" aria-hidden="true">◉</span>
+            <span class="brand-name">Token Namer</span>
+          </div>
+          <p class="fineprint">© <span id="year"></span> Token Namer.</p>
+        </div>
+
+        <div class="footer-links">
+          <a href="/#tool">Tool</a>
+          <a href="/docs/documentation.html">Docs</a>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module">
+      const btn = document.querySelector(".menu-btn");
+      const mobile = document.querySelector(".mobile-nav");
+      btn?.addEventListener("click", () => {
+        const next = btn.getAttribute("aria-expanded") !== "true";
+        btn.setAttribute("aria-expanded", String(next));
+        if (mobile) mobile.hidden = !next;
+      });
+      const year = document.querySelector("#year");
+      if (year) year.textContent = String(new Date().getFullYear());
+    </script>
+  </body>
 </html>

@@ -6,7 +6,7 @@ A web-based **token naming tool** that helps people generate consistent design t
 - **Semantic**
 - **Component**
 
-The tool uses a **form-based interface** with accordion sections for **Prefix / Base / Suffix** fields. Users select terms from combobox inputs populated with predefined vocabulary and can optionally add custom terms in allowed fields.
+The tool uses a **form-based interface** with clearly labeled **Prefix** and **Token fields** groups (always visible; no accordions). Users select terms from combobox inputs populated with predefined vocabulary and can add custom terms in any field.
 
 **Primary output:** a **live preview** of the token name (path) that users can **copy**.
 
@@ -53,13 +53,12 @@ Each tab maintains its own state and field configuration:
 
 ### Shared UI pattern (all tabs)
 
-The interface uses an **accordion-based form layout** with the following structure:
+The interface uses a **section-based form layout** with the following structure:
 
 **Layout structure:**
-- **Single-column form** with collapsible accordion sections
+- **Single-column form** with always-visible field groups
 - **Live preview card** displayed prominently at the top
-- **Accordion sections** for field groups (Prefix, Base/Standard, Suffix)
-- Sections can be expanded/collapsed independently
+- **Field groups** for Prefix and Token fields (framework slots)
 - Responsive design: maintains single-column layout across screen sizes
 
 **Preview card (top section):**
@@ -76,37 +75,23 @@ The interface uses an **accordion-based form layout** with the following structu
   - Toast notification on successful copy
   - Keyboard shortcut: Cmd/Ctrl+C when preview area is focused
 
-**Prefix node section (accordion):**
-- **Collapsed by default**
-- **Add buttons**: Buttons to add optional prefix fields (System, Theme, Domain)
-  - Fields are added dynamically when buttons are clicked
-  - Each added field can be removed individually (× button)
+**Prefix section:**
+- System / Theme / Prefix domain are optional fields (always visible)
 - **Combobox inputs**: Autocomplete-enabled text inputs for each prefix field
   - Shows vocabulary suggestions as user types
   - Allows custom input (free text)
   - Displays descriptions via tooltips
 
-**Standard node section (accordion):**
-- **Expanded by default**
+**Core fields section (framework slots):**
 - **Framework-specific fields**:
-  - **Primitive**: Category (required), Property (optional, addable via button)
-  - **Semantic**: Category (required), Concept (required), Property (required)
-  - **Component**: Group (optional, addable), Component (required), Element (required)
+  - **Primitive**: Category (required), Set (required), Step (required), Variant (optional)
+  - **Semantic**: Domain (required), Object (required), Role (required), Context (optional), State (optional), Emphasis (optional)
+  - **Component**: Component (required), Part (required), Property (required), Variant (optional), State (optional), Context (optional)
 - **Required fields**: Always visible with required indicator (*)
-- **Optional fields**: Can be added/removed via buttons
+- **Optional fields**: Always visible (leave blank to omit)
 - **Combobox inputs**: Autocomplete-enabled for all fields
   - Vocabulary filtered based on namespace and other field values
   - Conditional vocabulary (e.g., motion bases vary by object type)
-
-**Suffix node section (accordion):**
-- **Collapsed by default**
-- **Add buttons**: Buttons to add optional modifier fields (Variant, State, Scale, Mode)
-  - Fields are added dynamically when buttons are clicked
-  - Each added field can be removed individually (× button)
-  - Fields maintain order: Variant → State → Scale → Mode
-- **Combobox inputs**: Autocomplete-enabled for modifier values
-  - Shared vocabulary across all modifier types
-  - Allows custom input
 
 **Combobox behavior:**
 - **Autocomplete**: Filters vocabulary as user types (case-insensitive)
@@ -136,74 +121,124 @@ To illustrate how the three frameworks differ, here are concrete examples:
 
 ### Primitive framework
 
-Primitive tokens represent the most basic design values without semantic meaning.
+Primitive tokens define the raw, literal values of the system. They are the lowest level of abstraction and must not encode meaning, usage, state, or component intent.
+
+**Purpose:**
+Primitive tokens exist to:
+- Provide stable, reusable value ramps
+- Enable deterministic aliasing into semantic and component tokens
+- Act as the single source of truth for values across tools and platforms
+
+**Core Primitive Naming Framework:**
+
+**Structure:**
+```
+<category>/<set>/<step>/<variant?>
+```
 
 **Field structure:**
-- Namespace (required): e.g., `color`, `space`, `typography`, `radius`, `motion`
-- Category (required, base): Semantic category — e.g., `primary`, `secondary`, `default`
-- Property (optional, base): Additional property descriptor
-- Prefix fields (optional): System, Theme, Domain
-- Suffix modifiers (optional): Variant, State, Scale, Mode
+- Category (required): e.g., `color`, `space`, `size`, `radius`, `border-width`, `opacity`, `shadow`, `blur`, `font-family`, `font-size`, `line-height`, `font-weight`, `letter-spacing`, `duration`, `easing`, `layer`, `breakpoint`
+- Set (required): Category-specific (e.g., hue names for color; `core` for most others)
+- Step (required): Category-specific numeric step system
+- Variant (optional): Category-specific (e.g., `A20` for alpha, `compact` for density primitives, etc.)
 
-**Example vocabulary (namespace-dependent):**
-- Namespace `color`: Categories like `primary`, `secondary`, `accent`, `default`, `muted`
-- Namespace `space`: Scale values like `xs`, `sm`, `md`, `lg`, `xl`, `2xl`, `3xl`
-- Namespace `typography`: Usage types like `body`, `heading`, `caption`, `label`, `code`
+**JSON Storage Model:**
+- Store segments as nested JSON objects (groups), not as a single slash-delimited key string
+- Groups are JSON objects without `$value`
+- Tokens are objects with `$value`
+- Optional variants under a step: if you need both "base" and "variants" under the same step, use the reserved `$root` token inside the group
+
+**Character Restrictions:**
+- Token + group names must not start with `$`
+- Names must not contain `{`, `}`, or `.`
+
+**Type Requirements:**
+- Every token must have a `$type` available (on the token or inherited from a parent group)
+- Tools must not guess types
 
 **Example token names:**
-- `color/primary`
-- `space/md`
-- `typography/body`
-- `radius/button/default`
+- `color/blue/500`
+- `color/blue/500/A20` (with alpha variant)
+- `space/8`
+- `size/24`
+- `radius/4`
+- `font-size/16`
+- `duration/200`
+- `easing/standard`
 
 ### Semantic framework
 
-Semantic tokens assign meaning to primitive values, describing their purpose or role.
+Semantic tokens describe the intended use or context of a value rather than the raw value itself. They reside in the middle layer of abstraction, mapping intent (like "action" or "surface") to specific primitive values.
+
+**Purpose:**
+Semantic tokens exist to:
+- Provide meaning and intent to raw values (e.g., `color/red/600` becomes `border/error`)
+- Enable theming (e.g., light/dark mode) by remapping aliases without changing components
+- Enforce consistent application of design decisions across different components
+
+**Core Semantic Naming Framework:**
+
+**Structure:**
+```
+<domain>/<object>/<role>/<context?>/<state?>/<emphasis?>
+```
 
 **Field structure:**
-- Namespace (required): e.g., `color`, `space`, `typography`, `radius`, `motion`
-- Category (required, base): Semantic category — e.g., `primary`, `secondary`, `default`
-- Concept (required, base): Semantic concept — e.g., `text`, `background`, `border`, `icon`
-- Property (required, base): Property descriptor — e.g., `primary`, `secondary`, `accent`
-- Prefix fields (optional): System, Theme, Domain
-- Suffix modifiers (optional): Variant, State, Scale, Mode
+- Domain (required): e.g., `surface`, `content`, `separator`, `action`, `link`, `focus`, `status`, `toggle`, `range`, `overlay`, `accent`, `constant`, `type`, `space`, `size`, `radius`, `border-width`, `shadow`
+- Object (required): Domain-specific object (varies by domain - see Controlled vocabulary section)
+- Role (required): Categorical meaning (e.g., `primary`, `secondary`, `default`, `subtle`)
+- Context (optional): Rendering context (e.g., `inverse`, `on-media`, `on-light-media`, `on-accent`)
+- State (optional): Interaction/condition changes (e.g., `default`, `hover`, `pressed`, `selected`, `active`, `disabled`, `focus`, `invalid`, `visited`, `loading`)
+- Emphasis (optional): Visual strength ladder (e.g., `weakest`, `weaker`, `weak`, `default`, `strong`, `stronger`, `strongest`)
 
-**Example vocabulary (namespace-dependent):**
-- Namespace `color`: 
-  - Categories: `primary`, `secondary`, `accent`, `default`, `muted`
-  - Concepts: `text`, `background`, `border`, `icon`
-  - Properties: `primary`, `secondary`, `accent`, `default`, `muted`, `subtle`, `strong`
-- Namespace `space`: Categories like `default`, `compact`, `cozy`, `roomy`
+**Rules:**
+- Domain-leading is non-negotiable: the first segment communicates usage, not data type
+- Role is categorical (meaning), not intensity. Don't use "strong/weak/muted" as roles if you keep an emphasis ladder
+- Context ≠ role: use `<context>` only when the same role must adapt to a known rendering context (media, inverse, accent)
+- State only for interaction/condition changes (hover/pressed/disabled/etc.). Don't invent "focused" as a role if it's a state
+- Emphasis is optional and should be used sparingly (only where you truly need a ladder). Most semantic systems should ship without it
+- Composite tokens must be backed by leaf variables: the "composite" is a contract name (often a style), and its properties are variables
 
 **Example token names:**
-- `color/primary/text/primary`
-- `color/secondary/background/default`
-- `space/default/text/default`
+- `surface/background/default`
+- `content/text/primary/inverse`
+- `action/bg/primary/hover`
+- `status/positive/bg/default`
+- `type/body/md/regular`
+- `space/component/padding/default/md`
 
 ### Component framework
 
-Component tokens are specific to UI components, describing their styling properties.
+Component tokens are specific to UI components, describing their styling properties. They provide stable override points for component anatomy that needs explicit control.
+
+**Core Component Naming Framework:**
+
+**Structure:**
+```
+component/<component>/<part>/<property>/<variant?>/<state?>/<context?>
+```
 
 **Field structure:**
-- Namespace (required): e.g., `color`, `space`, `typography`, `radius`, `motion`
-- Group (optional, base): Component group/collection
-- Component (required, base): Component type — e.g., `button`, `input`, `card`, `badge`
-- Element (required, base): Element/property — e.g., `text`, `background`, `border`, `icon`
-- Prefix fields (optional): System, Theme, Domain
-- Suffix modifiers (optional): Variant, State, Scale, Mode
+- Component (required): Industry-standard component name in kebab-case (e.g., `button`, `text-field`, `checkbox`, `radio`, `switch`, `slider`, `tabs`, `nav-item`, `card`, `modal`, `tooltip`, `toast`)
+- Part (required): Component part (e.g., `container`, `field`, `input`, `label`, `helper-text`, `placeholder`, `icon`, `leading-icon`, `trailing-icon`, `border`, `divider`, `focus-ring`, `track`, `fill`, `thumb`, `handle`, `indicator`, `header`, `body`, `footer`, `media`, `overlay`, `scrim`, `item`, `selection`)
+- Property (required): Property type (e.g., `bg`, `text`, `icon`, `border-color`, `border-width`, `radius`, `shadow`, `opacity`, `padding-x`, `padding-y`, `gap`, `min-height`, `width`, `height`)
+- Variant (optional): Component styling variant (e.g., `primary`, `secondary`, `tertiary`, `subtle`, `outline`, `ghost`, `destructive`, `success`, `warning`, `danger`, `info`, `compact`, `spacious`) — only when the component meaningfully supports variants
+- State (optional): Interaction/condition state (e.g., `default`, `hover`, `pressed`, `selected`, `active`, `disabled`, `focus`, `invalid`, `visited`, `loading`, `expanded`, `checked`, `indeterminate`)
+- Context (optional): Rendering context (e.g., `inverse`, `on-media`, `on-light-media`, `on-accent`)
 
-**Example vocabulary (namespace-dependent):**
-- Namespace `color`:
-  - Objects (components): `text`, `background`, `border`, `icon`
-- Namespace `space`: Scale values like `xs`, `sm`, `md`, `lg`, `xl`
-- Namespace `radius`: Objects like `button`, `card`, `input`, `badge`
-- Namespace `typography`: Objects like `font-family`, `font-size`, `line-height`, `font-weight`
+**Rules:**
+- Use variant for component styling variants (e.g., primary/secondary, outline/ghost, compact/spacious). If there's no meaningful variant, omit it
+- Default behavior: component tokens should alias semantic tokens; use component tokens only for stable override points or component anatomy that needs explicit control
+- DTCG JSON-safe naming: no segment starts with `$`; no `.`, `{`, `}` in any segment
+- Token vs group collision: if you need a base value and nested state keys under the same node, store the base as `$root` in JSON and keep state variants as siblings. (Figma names omit `$root`.)
+- Avoid over-tokenizing: don't create component tokens for every value—start with high-impact properties (bg/text/border/focus/shadow/radius) and only add more when you have real theming needs
 
 **Example token names:**
-- `color/button/text/primary`
-- `color/button/background/primary/hover`
-- `space/input/padding/md`
-- `radius/card/default`
+- `component/button/container/bg/primary/default`
+- `component/button/label/text/primary/hover`
+- `component/text-field/field/border-color/invalid`
+- `component/card/container/radius`
+- `component/modal/scrim/bg`
 
 ---
 
@@ -218,9 +253,14 @@ Component tokens are specific to UI components, describing their styling propert
 - Format can be changed via dropdown selector in the preview card.
 
 Examples:
-- `color/primary/text/primary` (slash format)
-- `color_primary_text_primary` (underscore format)
-- `color.primary.text.primary` (dot format)
+- Semantic: `surface/background/default` (slash format), `surface_background_default` (underscore format), `surface.background.default` (dot format)
+- Semantic: `action/bg/primary/hover` (slash format), `action_bg_primary_hover` (underscore format), `action.bg.primary.hover` (dot format)
+- Semantic: `content/text/primary/inverse` (slash format), `content_text_primary_inverse` (underscore format), `content.text.primary.inverse` (dot format)
+- Component: `component/button/container/bg/primary/default` (slash format), `component_button_container_bg_primary_default` (underscore format), `component.button.container.bg.primary.default` (dot format)
+- Component: `component/text-field/field/border-color/invalid` (slash format), `component_text-field_field_border-color_invalid` (underscore format), `component.text-field.field.border-color.invalid` (dot format)
+- Primitive: `color/blue/500` (slash format), `color_blue_500` (underscore format), `color.blue.500` (dot format)
+- Primitive: `space/8` (slash format), `space_8` (underscore format), `space.8` (dot format)
+- Primitive: `radius/4` (slash format), `radius_4` (underscore format), `radius.4` (dot format)
 
 ### 2) Multi-word vocabulary terms
 - Vocabulary terms that represent multiple words must use `-` between words **within a single segment**:
@@ -325,7 +365,9 @@ When a user interacts with a combobox:
 ---
 
 ### R4 — Custom term creation (guardrailed)
-Users can add custom terms only if `allow_custom_terms = TRUE` for that slot.
+**v1 behavior:** Users can add custom terms in any slot (no per-slot restriction).
+
+**v2 behavior (schema-driven):** Slots may restrict custom terms via `allow_custom_terms = TRUE/FALSE`.
 
 **Important: Custom terms are session-only**
 - Custom terms exist only in runtime/session state
@@ -641,6 +683,9 @@ VOCABULARY = {
 - **Conditional vocabulary**: Motion namespace has object-dependent bases (`basesByObject`)
 - **Modifiers**: Shared vocabulary for suffix modifier fields (variant, state, scale, mode)
 
+**Note on Primitive Tokens:**
+The structure described above applies to the current implementation. Primitive tokens follow a different naming framework structure: `<category>/<set>/<step>/<variant?>`. Primitive tokens require category-specific vocabulary and step systems as defined in the Controlled vocabulary section. The primitive framework uses a JSON storage model where segments are stored as nested JSON objects (groups), with groups being objects without `$value` and tokens being objects with `$value`. See the "Primitive tokens" section under Controlled vocabulary for complete details.
+
 **Access:**
 - Vocabulary is accessed via getter functions in `src/data.js`
 - Functions filter vocabulary based on namespace and current field values
@@ -650,152 +695,1098 @@ VOCABULARY = {
 
 ## Controlled vocabulary
 
-### Semantic color tokens
+### Primitive tokens
 
-This taxonomy applies **only to semantic color tokens** for the semantic framework. Primitive and component color tokens are explicitly out of scope.
+Primitive tokens define the raw, literal values of the system. They are the lowest level of abstraction and must not encode meaning, usage, state, or component intent.
 
-**Canonical structure:**
+**Core Primitive Naming Framework:**
+
+**Structure:**
 ```
-color / role / element / variant / emphasis / state
+<category>/<set>/<step>/<variant?>
 ```
 
-Only `role` and `element` are required. All other segments are optional and role-dependent.
+**Controlled vocabulary table:**
 
-#### 1. Role (required)
-
-Roles are the **primary semantic axis**. These are intentionally few and stable.
-
-| Role         | Definition                                    |
-| ------------ | --------------------------------------------- |
-| `surface`    | Backgrounds and surfaces that content sits on |
-| `content`    | Foreground content such as text and icons     |
-| `separator`  | Visual dividers and boundaries                |
-| `action`     | Interactive, user-initiated affordances       |
-| `selection`  | Indication of selection or current location   |
-| `focus`      | Keyboard and accessibility focus indicators   |
-| `feedback`   | System status and messaging                   |
-| `decorative` | Non-functional, expressive color usage        |
-
-**Rules:**
-- A token must have exactly one role
-- Roles must not reference components
-- Roles must remain stable across themes
-
-#### 2. Element (required)
-
-Elements describe **where the color is applied**, not what component it belongs to.
-
-**Allowed elements by role:**
-
-| Role         | Allowed Elements                                        |
-| ------------ | ------------------------------------------------------- |
-| `surface`    | `background`, `overlay`, `shadow`                       |
-| `content`    | `text`, `icon`                                          |
-| `separator`  | `border`, `divider`                                     |
-| `action`     | `background`, `on-background`, `link`                   |
-| `selection`  | `background`, `on-background`, `indicator`              |
-| `focus`      | `outline`, `halo`, `inner`                              |
-| `feedback`   | `background`, `on-background`, `text`, `icon`, `border` |
-| `decorative` | `background`, `on-background`, `text`, `icon`, `border` |
+| Category | Set | Step | Variant |
+|----------|-----|------|---------|
+| `color` | hue names (see color rules) | 0–1100 | A0–A100 (alpha) |
+| `space` | (omitted, uses step directly) | 0–40 | (optional) |
+| `size` | (omitted, uses step directly) | 0–200 | (optional) |
+| `radius` | (omitted, uses step directly) | 0–32, plus 999 (pill) | (optional) |
+| `border-width` | (omitted, uses step directly) | 0–8 | (optional) |
+| `opacity` | (omitted, uses step directly) | 0–100 | (optional) |
+| `shadow` | (omitted, uses level directly) | 0–5 | (optional) |
+| `blur` | (omitted, uses step directly) | category-specific | (optional) |
+| `font-family` | (omitted, uses name directly) | (n/a) | (optional) |
+| `font-size` | (omitted, uses step directly) | 8–72 | (optional) |
+| `line-height` | (omitted, uses step directly) | 10–96 | (optional) |
+| `font-weight` | (omitted, uses step directly) | 100, 200, 300, 400, 500, 600, 700, 800, 900 | (optional) |
+| `letter-spacing` | (omitted, uses step directly) | neg2–10 | (optional) |
+| `duration` | (omitted, uses step directly) | 0–2000 (milliseconds) | (optional) |
+| `easing` | (omitted, uses curve directly) | (n/a) | (optional) |
+| `layer` | (omitted, uses level directly) | 0–10 | (optional) |
+| `breakpoint` | (omitted, uses step directly) | category-specific | (optional) |
 
 **Rules:**
-- Elements must be visually literal (what is being colored)
-- No component names allowed
-- `on-background` is allowed only when contrast is meaningful
+- Store segments as nested JSON objects (groups), not as a single slash-delimited key string
+- Groups are JSON objects without `$value`; tokens are objects with `$value`
+- Token + group names must not start with `$`
+- Names must not contain `{`, `}`, or `.`
+- Every token must have a `$type` available (on the token or inherited from a parent group)
+- Tools must not guess types
+- Optional variants under a step: if you need both "base" and "variants" under the same step, use the reserved `$root` token inside the group
 
-#### 3. Variant (optional)
+#### Primitive color naming rules
 
-Variants express **intent, hierarchy, or meaning**, not visual strength.
+**Structure:**
+```
+color/<hue>/<step>/<alpha?>
+```
 
-**Allowed variants by role:**
+**Controlled vocabulary:**
 
-| Role         | Allowed Variants                                     |
-| ------------ | ---------------------------------------------------- |
-| `surface`    | `primary`, `secondary`, `tertiary`                   |
-| `content`    | `primary`, `secondary`, `tertiary`                   |
-| `separator`  | `primary`, `secondary`, `tertiary`                   |
-| `action`     | `primary`, `secondary`, `tertiary`, `negative`       |
-| `selection`  | `primary`, `secondary`                               |
-| `focus`      | `primary`, `secondary`                               |
-| `feedback`   | `neutral`, `positive`, `negative`, `warning`, `info` |
-| `decorative` | *(none — decorative uses color directly)*            |
-
-**Rules:**
-- Variants must be role-specific
-- Status variants (`positive`, `negative`, etc.) are only valid for `feedback`
-- Decorative tokens do not encode meaning via variants
-
-#### 4. Emphasis (optional)
-
-Emphasis expresses **relative visual strength**, not color value or brightness.
-
-| Emphasis Level |
-| -------------- |
-| `weakest`      |
-| `weak`         |
-| `default`      |
-| `strong`       |
-| `strongest`    |
+| Segment | Allowed Values |
+|---------|----------------|
+| `<hue>` | `white`, `black`, `gray`, `blue`, `red`, `yellow`, `green`, `cyan`, `indigo`, `olive`, `orange`, `pink`, `purple`, `rose`, `shamrock`, `teal`, `violet` |
+| `<step>` | 0–1100 |
+| `<alpha>` | A0–A100 |
 
 **Rules:**
-- Emphasis is optional but recommended
-- Emphasis must be meaningful in both light and dark themes
-- No color names or numeric scales allowed
+- Use a numbered stepping system for ramps (100-based scale)
+- You may add extra steps like 25, 50, 75 for subtle differences
+- Omit `<alpha>` when fully opaque; only add `<alpha>` when the alpha is part of the primitive value
 
-#### 5. State (optional)
+**Example token names:**
+- `color/blue/500`
+- `color/gray/100`
+- `color/blue/500/A20`
 
-State captures **interaction or system changes**.
+#### Primitive space naming rules
 
-| Common States |
-| ------------- |
-| `default`     |
-| `hover`       |
-| `active`      |
-| `pressed`     |
-| `selected`    |
-| `focus`       |
-| `disabled`    |
+**Structure:**
+```
+space/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 0–40 (recommended), where each step maps to a px/rem value in your scale |
 
 **Rules:**
-- State is optional
-- Not all roles support all states
-- `feedback` tokens usually omit interaction states
+- Keep the number of steps small and consistent across platforms
+- Steps should be monotonic (bigger step = bigger space)
+- Don't encode units in the token name (units live in values)
 
-#### Example semantic color tokens
+**Example token names:**
+- `space/0`
+- `space/4`
+- `space/8`
+- `space/16`
 
-**Surface:**
-- `color/surface/background/primary/default`
-- `color/surface/overlay/secondary/weak`
+#### Primitive size naming rules
 
-**Content:**
-- `color/content/text/primary/default`
-- `color/content/icon/secondary/disabled`
+**Structure:**
+```
+size/<step>
+```
 
-**Action:**
-- `color/action/background/primary/strong/hover`
-- `color/action/link/negative/default`
+**Controlled vocabulary:**
 
-**Feedback:**
-- `color/feedback/background/positive/default`
-- `color/feedback/text/warning/strong`
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 0–200 (recommended), where each step maps to a px/rem value in your scale |
 
-**Focus:**
-- `color/focus/outline/primary/default`
+**Rules:**
+- Use for general sizing primitives (icons, controls, layout constraints)
+- If you need distinct size families, prefer a new category over stuffing meaning into the step
 
-#### Design decisions
+**Example token names:**
+- `size/16`
+- `size/24`
+- `size/48`
 
-- **No color names** in semantic tokens (except decorative)
-- **Decorative tokens are non-semantic** and must never be required for UX clarity
-- **Variants ≠ emphasis**: Variant = meaning, Emphasis = strength
-- **Semantic tokens never reference components**
-- **All semantic tokens must map to primitives**
+#### Primitive radius naming rules
 
-#### Enforcement strategy
+**Structure:**
+```
+radius/<step>
+```
 
-- Role → element → variant options are **progressively constrained**
-- Invalid combinations are blocked at creation time
-- Vocabulary filtering in comboboxes enforces valid combinations
-- Exported tokens are guaranteed semantically valid
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 0–32, plus 999 (pill) |
+
+**Rules:**
+- Keep steps sparse (you rarely need many)
+- Reserve 999 for pill/full rounding
+
+**Example token names:**
+- `radius/0`
+- `radius/4`
+- `radius/8`
+- `radius/999` (pill)
+
+#### Primitive border-width naming rules
+
+**Structure:**
+```
+border-width/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 0–8 |
+
+**Rules:**
+- Use a tiny set (most systems need 0/1/2 at most)
+- Keep "hairline" handling in values/platform logic, not names
+
+**Example token names:**
+- `border-width/0`
+- `border-width/1`
+- `border-width/2`
+
+#### Primitive opacity naming rules
+
+**Structure:**
+```
+opacity/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 0–100 |
+
+**Rules:**
+- Prefer increments of 5 or 10
+- Don't create opacity primitives if you always bake alpha into `color/.../Axx`—pick one strategy and stick to it
+
+**Example token names:**
+- `opacity/0`
+- `opacity/50`
+- `opacity/100`
+
+#### Primitive shadow naming rules
+
+**Structure:**
+```
+shadow/<level>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<level>` | 0–5 (recommended) |
+
+**Rules:**
+- Keep this small; shadows vary by platform and theme
+- If your system uses elevation language, you can alias `elevation/<level>` → `shadow/<level>`
+
+**Example token names:**
+- `shadow/0`
+- `shadow/1`
+- `shadow/2`
+- `shadow/5`
+
+#### Primitive font-family naming rules
+
+**Structure:**
+```
+font-family/<name>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<name>` | `sans`, `serif`, `mono` (plus any brand fonts in kebab-case) |
+
+**Rules:**
+- Use generic fallbacks as names; put the full font stack in the value
+- Keep brand font names stable and kebab-case
+
+**Example token names:**
+- `font-family/sans`
+- `font-family/serif`
+- `font-family/mono`
+- `font-family/brand-font-name`
+
+#### Primitive font-size naming rules
+
+**Structure:**
+```
+font-size/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 8–72 (recommended), integers only |
+
+**Rules:**
+- Use real numeric sizes (mapped to px/rem in values)
+- Avoid duplicate sizes with different names
+
+**Example token names:**
+- `font-size/12`
+- `font-size/16`
+- `font-size/24`
+- `font-size/32`
+
+#### Primitive line-height naming rules
+
+**Structure:**
+```
+line-height/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 10–96 (recommended), integers only |
+
+**Rules:**
+- If you use unitless line-height in code, still keep the token name numeric
+- Ensure common pairings exist (e.g., 16 size often pairs with 20–24 line height)
+
+**Example token names:**
+- `line-height/16`
+- `line-height/20`
+- `line-height/24`
+
+#### Primitive font-weight naming rules
+
+**Structure:**
+```
+font-weight/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 100, 200, 300, 400, 500, 600, 700, 800, 900 |
+
+**Rules:**
+- Use CSS-style numeric weights even if design tools show names like "Semibold"
+- Map platform-specific weight equivalents in values
+
+**Example token names:**
+- `font-weight/400` (normal)
+- `font-weight/500` (medium)
+- `font-weight/700` (bold)
+
+#### Primitive letter-spacing naming rules
+
+**Structure:**
+```
+letter-spacing/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | neg2–10 (recommended), integers (maps to em/px in values) |
+
+**Rules:**
+- Keep the step set small; only add negative spacing when justified
+- Don't encode units in the token name
+
+**Example token names:**
+- `letter-spacing/0`
+- `letter-spacing/neg1`
+- `letter-spacing/1`
+
+#### Primitive duration naming rules
+
+**Structure:**
+```
+duration/<step>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<step>` | 0–2000 (milliseconds) |
+
+**Rules:**
+- Use meaningful increments (e.g., 75/100/150/200/300/500/800)
+- Keep "instant" as `duration/0`
+
+**Example token names:**
+- `duration/0` (instant)
+- `duration/100`
+- `duration/200`
+- `duration/500`
+
+#### Primitive easing naming rules
+
+**Structure:**
+```
+easing/<curve>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<curve>` | `standard`, `emphasized`, `decelerate`, `accelerate`, `linear` |
+
+**Rules:**
+- Store the actual cubic-bezier/spring parameters in values
+- Keep curve names semantic (avoid bezier-1 style names)
+
+**Example token names:**
+- `easing/standard`
+- `easing/emphasized`
+- `easing/decelerate`
+- `easing/linear`
+
+#### Primitive layer (z-index) naming rules
+
+**Structure:**
+```
+layer/<level>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<level>` | 0–10 (recommended) |
+
+**Rules:**
+- Use layers for stacking contexts (dropdown, modal, toast, tooltip)
+- Don't overfit—prefer fewer, well-documented layers
+
+**Example token names:**
+- `layer/0`
+- `layer/1`
+- `layer/5`
+- `layer/10`
+
+---
+
+### Semantic tokens
+
+Semantic tokens describe the intended use or context of a value rather than the raw value itself. They reside in the middle layer of abstraction, mapping intent to specific primitive values.
+
+**Core Semantic Naming Framework:**
+
+**Structure:**
+```
+<domain>/<object>/<role>/<context?>/<state?>/<emphasis?>
+```
+
+**Controlled vocabulary table:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<domain>` | `surface`, `content`, `separator`, `action`, `link`, `focus`, `status`, `toggle`, `range`, `overlay`, `accent`, `constant`, `type`, `space`, `size`, `radius`, `border-width`, `shadow` |
+| `<context>` | `inverse`, `on-media`, `on-light-media`, `on-accent` |
+| `<state>` | `default`, `hover`, `pressed`, `selected`, `active`, `disabled`, `focus`, `invalid`, `visited`, `loading` |
+| `<emphasis>` | `weakest`, `weaker`, `weak`, `default`, `strong`, `stronger`, `strongest` |
+
+**Rules:**
+- Domain-leading is non-negotiable: the first segment communicates usage, not data type
+- Role is categorical (meaning), not intensity. Don't use "strong/weak/muted" as roles if you keep an emphasis ladder
+- Context ≠ role: use `<context>` only when the same role must adapt to a known rendering context (media, inverse, accent)
+- State only for interaction/condition changes (hover/pressed/disabled/etc.). Don't invent "focused" as a role if it's a state
+- Emphasis is optional and should be used sparingly (only where you truly need a ladder). Most semantic systems should ship without it
+- Composite tokens must be backed by leaf variables: the "composite" is a contract name (often a style), and its properties are variables
+
+---
+
+## Color semantics
+
+### Surface semantic naming rules
+
+**Structure:**
+```
+surface/<layer>/<role>/<context?>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<layer>` | `background`, `container`, `elevated`, `popover`, `ui` |
+| `<role>` | `default`, `subtle`, `emphasized` |
+| `<context>` | `inverse` |
+| `<state>` | `default`, `hover`, `pressed`, `selected`, `disabled` |
+
+**Rules:**
+- Use for anything that reads as a surface someone sits on
+- Keep roles small; layer does most of the differentiation
+- Prefer surface tokens over component-specific backgrounds unless you need overrides
+
+**Example token names:**
+- `surface/background/default`
+- `surface/container/subtle`
+- `surface/elevated/default/inverse`
+
+### Content semantic naming rules
+
+**Structure:**
+```
+content/<kind>/<role>/<context?>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<kind>` | `text`, `icon` |
+| `<role>` | `primary`, `secondary`, `placeholder`, `disabled`, `highlight` |
+| `<context>` | `inverse`, `on-media`, `on-light-media`, `on-accent` |
+| `<state>` | `default`, `disabled` |
+
+**Rules:**
+- `primary`/`secondary` express information hierarchy, not "strength"
+- `inverse` and `on-media` are context modifiers, not new roles
+- `highlight` is for text highlight fill/ink treatment, not status sentiment
+
+**Example token names:**
+- `content/text/primary`
+- `content/text/secondary/inverse`
+- `content/icon/disabled`
+
+### Separator semantic naming rules
+
+**Structure:**
+```
+separator/<object>/<role>/<context?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `divider`, `border`, `container-border`, `media-inner-border` |
+| `<role>` | `default`, `focused`, `unfocused` |
+| `<context>` | `inverse` |
+
+**Rules:**
+- Use for structural dividers and frames
+- Keep separate from `action/border/*` (interactive borders)
+
+**Example token names:**
+- `separator/divider/default`
+- `separator/border/focused`
+- `separator/container-border/default/inverse`
+
+### Action semantic naming rules
+
+**Structure:**
+```
+action/<object>/<role>/<state>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `bg`, `text`, `icon`, `border` |
+| `<role>` | `primary`, `secondary`, `tertiary`, `subtle`, `destructive` |
+| `<state>` | `default`, `hover`, `pressed`, `disabled`, `focus`, `loading` |
+
+**Rules:**
+- This is your shared interaction palette (used by many components)
+- Don't mirror every component variant here—keep it compact and reusable
+
+**Example token names:**
+- `action/bg/primary/default`
+- `action/bg/primary/hover`
+- `action/text/destructive/disabled`
+
+### Link semantic naming rules
+
+**Structure:**
+```
+link/<role>/<context?>/<state>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<role>` | `default`, `subtle` |
+| `<context>` | `inverse`, `on-media`, `on-accent` |
+| `<state>` | `default`, `hover`, `pressed`, `visited`, `disabled` |
+
+**Rules:**
+- Don't encode hue (e.g., "blue") in semantic names
+- Keep `visited` explicit—this is why links deserve their own domain
+
+**Example token names:**
+- `link/default/default`
+- `link/default/hover`
+- `link/default/visited`
+- `link/subtle/inverse/hover`
+
+### Focus semantic naming rules
+
+**Structure:**
+```
+focus/<object>/<role>/<context?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `ring`, `outline` |
+| `<role>` | `default`, `invalid` |
+| `<context>` | `inverse` |
+
+**Rules:**
+- Treat focus as its own domain so it can't be themed away accidentally
+- Keep the set tiny and enforce usage
+
+**Example token names:**
+- `focus/ring/default`
+- `focus/outline/invalid`
+- `focus/ring/default/inverse`
+
+### Status semantic naming rules
+
+**Structure:**
+```
+status/<intent>/<object>/<role?>/<context?>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<intent>` | `positive`, `negative`, `warning`, `info` |
+| `<object>` | `bg`, `text`, `icon`, `border` |
+| `<role>` | `default`, `subtle` |
+| `<context>` | `inverse`, `on-media`, `on-accent` |
+| `<state>` | `default`, `disabled` |
+
+**Rules:**
+- Status expresses meaning (sentiment), not hierarchy
+- Don't create `error-text` as a content role—status is orthogonal
+
+**Example token names:**
+- `status/positive/bg/default`
+- `status/negative/text/default`
+- `status/warning/icon/subtle`
+
+### Toggle semantic naming rules
+
+**Structure:**
+```
+toggle/<object>/<role>/<context?>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `background`, `icon`, `text` |
+| `<role>` | `on`, `off`, `active` |
+| `<context>` | `on-active-background` |
+| `<state>` | `default`, `disabled` |
+
+**Rules:**
+- Toggle is discrete (boolean). Not for sliders
+- Keep `on-active-background` only for cases where foreground must contrast with the active track
+
+**Example token names:**
+- `toggle/background/on/default`
+- `toggle/icon/off/default`
+- `toggle/background/active/on-active-background`
+
+### Range semantic naming rules
+
+**Structure:**
+```
+range/<object>/<role>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `track`, `fill`, `thumb` |
+| `<role>` | `default` |
+| `<state>` | `default`, `hover`, `pressed`, `disabled` |
+
+**Rules:**
+- Range is continuous (slider/progress/scrubber)
+- This is how you keep "toggle active is gray" and "slider fill is blue" without collisions
+
+**Example token names:**
+- `range/track/default/default`
+- `range/fill/default/hover`
+- `range/thumb/default/pressed`
+
+### Overlay semantic naming rules
+
+**Structure:**
+```
+overlay/<object>/<role>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `scrim`, `backdrop` |
+| `<role>` | `default`, `strong` |
+| `<state>` | `default` |
+
+**Rules:**
+- Use for dimming layers behind modals/popovers
+- Pick one approach: alpha in color tokens or separate opacity tokens—don't mix randomly
+
+**Example token names:**
+- `overlay/scrim/default/default`
+- `overlay/backdrop/strong/default`
+
+### Accent semantic naming rules
+
+**Structure:**
+```
+accent/<object>/<role>/<context?>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `bg`, `text`, `icon`, `border` |
+| `<role>` | `default`, `subtle` |
+| `<context>` | `inverse` |
+| `<state>` | `default`, `disabled` |
+
+**Rules:**
+- Accent is expressive brand emphasis, not "selected/active"
+- Don't use accent tokens to represent status meaning
+
+**Example token names:**
+- `accent/bg/default/default`
+- `accent/text/subtle/inverse`
+- `accent/icon/default/disabled`
+
+### Constant semantic naming rules
+
+**Structure:**
+```
+constant/color/<role>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<role>` | `transparent`, `black`, `white` |
+
+**Rules:**
+- Only for values that should never theme (true constants)
+- Everything else belongs in `surface`/`content`/`action`/`status`/`accent`
+
+**Example token names:**
+- `constant/color/transparent`
+- `constant/color/black`
+- `constant/color/white`
+
+---
+
+## Typography semantics
+
+### Typography style naming rules
+
+**Structure:**
+```
+type/<role>/<size>/<weight>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<role>` | `display`, `heading`, `title`, `body`, `label`, `code` |
+| `<size>` | `xs`, `sm`, `md`, `lg`, `xl`, `2xl`, `3xl` |
+| `<weight>` | `regular`, `medium`, `strong` |
+| `<state>` | `default` |
+
+**Rules:**
+- This is the semantic handle people choose (typically a Text Style in Figma)
+- No hard-coded values in the style: every property must be backed by variables when Figma supports it
+
+**Example token names:**
+- `type/heading/lg/strong/default`
+- `type/body/md/regular/default`
+- `type/label/sm/medium/default`
+
+### Typography property variable naming rules
+
+**Structure:**
+```
+type/<role>/<size>/<weight>/<property>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<property>` | `font-family`, `font-weight`, `font-size`, `line-height`, `letter-spacing`, `paragraph-spacing?`, `paragraph-indent?` |
+
+**Rules:**
+- These are the leaf variables that back the `type/...` composite
+- Keep property names stable and exhaustive so audits are deterministic
+
+**Example token names:**
+- `type/body/md/regular/font-family`
+- `type/heading/lg/strong/font-size`
+- `type/body/md/regular/line-height`
+
+---
+
+## Dimension semantics (spacing, sizing, radius, border widths)
+
+### Spacing semantic naming rules
+
+**Structure:**
+```
+space/<scope>/<object>/<role>/<size?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<scope>` | `layout`, `component`, `content` |
+| `<object>` | `padding`, `margin`, `gap`, `gutter`, `inset` |
+| `<role>` | `default`, `compact`, `spacious` |
+| `<size>` | `xs`, `sm`, `md`, `lg`, `xl` |
+
+**Rules:**
+- Semantic spacing defines patterns, not the raw ramp (that's primitives)
+- Use `layout/*` for page-level constraints; `component/*` for reusable component spacing; `content/*` for text/media rhythm
+
+**Example token names:**
+- `space/layout/padding/default/md`
+- `space/component/gap/compact/sm`
+- `space/content/margin/spacious/lg`
+
+### Sizing semantic naming rules
+
+**Structure:**
+```
+size/<object>/<role>/<variant?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `icon`, `control`, `affordance`, `media`, `container` |
+| `<role>` | `xs`, `sm`, `md`, `lg`, `xl` |
+| `<variant>` | `min`, `max` (optional) |
+
+**Rules:**
+- Use for widely reused sizing decisions (icon sizes, control heights)
+- Avoid encoding component names here—keep it reusable
+
+**Example token names:**
+- `size/icon/md`
+- `size/control/lg`
+- `size/container/xl/max`
+
+### Corner radius semantic naming rules
+
+**Structure:**
+```
+radius/<object>/<role>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<object>` | `surface`, `control`, `card`, `avatar`, `media` |
+| `<role>` | `default`, `subtle`, `pronounced`, `pill` |
+
+**Rules:**
+- Keep roles categorical (don't use "strong/weak")
+- `pill` is reserved for full rounding behavior
+
+**Example token names:**
+- `radius/surface/default`
+- `radius/control/subtle`
+- `radius/card/pronounced`
+- `radius/avatar/pill`
+
+### Border width semantic naming rules
+
+**Structure:**
+```
+border-width/<role>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<role>` | `default`, `divider`, `strong`, `focus` |
+| `<state>` | `default` |
+
+**Rules:**
+- Keep the set tiny
+- `focus` border width is allowed to differ from default
+
+**Example token names:**
+- `border-width/default/default`
+- `border-width/divider/default`
+- `border-width/focus/default`
+
+---
+
+## Shadow effects semantics
+
+### Shadow style naming rules
+
+**Structure:**
+```
+shadow/<role>/<state?>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<role>` | `none`, `subtle`, `default`, `elevated`, `popover`, `modal` |
+| `<state>` | `default`, `hover`, `pressed` |
+
+**Rules:**
+- This is the semantic handle people choose (typically an Effect Style)
+- The effect must be backed by variables for every property Figma allows
+
+**Example token names:**
+- `shadow/none/default`
+- `shadow/subtle/default`
+- `shadow/elevated/hover`
+
+### Shadow property variable naming rules
+
+**Structure:**
+```
+shadow/<role>/<state?>/<layer?>/<property>
+```
+
+**Controlled vocabulary:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<layer>` | `1`, `2`, `3` (optional; only if you use multi-shadow stacks) |
+| `<property>` | `x`, `y`, `blur`, `spread`, `color` |
+
+**Rules:**
+- If you have a single shadow layer, omit `<layer>`
+- If you have stacks, use numbered layers (stable ordering) so exports/imports are deterministic
+- Shadow color must be a color variable (themeable); offsets/blur/spread are number variables
+
+**Example token names:**
+- `shadow/subtle/default/x`
+- `shadow/elevated/default/blur`
+- `shadow/modal/default/1/color`
+- `shadow/popover/hover/2/spread`
+
+---
+
+## Component tokens
+
+Component tokens are specific to UI components, describing their styling properties. They provide stable override points for component anatomy that needs explicit control.
+
+**Core Component Naming Framework:**
+
+**Structure:**
+```
+component/<component>/<part>/<property>/<variant?>/<state?>/<context?>
+```
+
+**Controlled vocabulary table:**
+
+| Segment | Allowed Values |
+|---------|----------------|
+| `<component>` | Industry-standard component name in kebab-case: `button`, `icon-button`, `split-button`, `button-group`, `fab`, `text-field`, `text-area`, `select`, `combobox`, `autocomplete`, `search-field`, `number-field`, `password-field`, `checkbox`, `radio`, `switch`, `slider`, `segmented-control`, `toggle-button`, `chip`, `tabs`, `nav-item`, `sidebar`, `breadcrumb`, `pagination`, `step-indicator`, `modal`, `dialog`, `drawer`, `popover`, `tooltip`, `toast`, `banner`, `card`, `panel`, `sheet`, `accordion`, `list`, `list-item`, `table`, `divider`, `avatar`, `thumbnail`, `image`, `media-card`, `progress-bar`, `progress-circle`, `spinner`, `skeleton`, `badge`, `tag`, `text`, `heading`, `link`, `code-block` |
+| `<part>` | `container`, `field`, `input`, `label`, `helper-text`, `placeholder`, `icon`, `leading-icon`, `trailing-icon`, `border`, `divider`, `focus-ring`, `track`, `fill`, `thumb`, `handle`, `indicator`, `header`, `body`, `footer`, `media`, `overlay`, `scrim`, `item`, `selection` |
+| `<property>` | `bg`, `text`, `icon`, `border-color`, `border-width`, `radius`, `shadow`, `opacity`, `padding-x`, `padding-y`, `gap`, `min-height`, `width`, `height` |
+| `<variant>` | `primary`, `secondary`, `tertiary`, `subtle`, `outline`, `ghost`, `destructive`, `success`, `warning`, `danger`, `info`, `compact`, `spacious` (only when the component meaningfully supports variants) |
+| `<state>` | `default`, `hover`, `pressed`, `selected`, `active`, `disabled`, `focus`, `invalid`, `visited`, `loading`, `expanded`, `checked`, `indeterminate` |
+| `<context>` | `inverse`, `on-media`, `on-light-media`, `on-accent` |
+
+**Rules:**
+- Use variant for component styling variants (e.g., primary/secondary, outline/ghost, compact/spacious). If there's no meaningful variant, omit it
+- Default behavior: component tokens should alias semantic tokens; use component tokens only for stable override points or component anatomy that needs explicit control
+- DTCG JSON-safe naming: no segment starts with `$`; no `.`, `{`, `}` in any segment
+- Token vs group collision: if you need a base value and nested state keys under the same node, store the base as `$root` in JSON and keep state variants as siblings. (Figma names omit `$root`.)
+- Avoid over-tokenizing: don't create component tokens for every value—start with high-impact properties (bg/text/border/focus/shadow/radius) and only add more when you have real theming needs
+
+---
+
+## Component token categories
+
+### 1) Actions and buttons
+
+**Components:** `button`, `icon-button`, `split-button`, `button-group`, `fab`
+
+**Common patterns:**
+- `component/button/container/bg/<variant?>/<state?>`
+- `component/button/label/text/<variant?>/<state?>`
+- `component/button/icon/icon/<variant?>/<state?>`
+- `component/button/container/border-color/<variant?>/<state?>`
+- `component/button/container/radius/<variant?>`
+
+**Example token names:**
+- `component/button/container/bg/primary/default`
+- `component/button/label/text/primary/hover`
+- `component/button/container/border-color/outline/default`
+- `component/icon-button/container/bg/secondary/pressed`
+
+### 2) Form inputs
+
+**Components:** `text-field`, `text-area`, `select`, `combobox`, `autocomplete`, `search-field`, `number-field`, `password-field`
+
+**Common patterns:**
+- `component/text-field/field/bg/<state?>`
+- `component/text-field/field/border-color/<state?>`
+- `component/text-field/field/border-width/<state?>`
+- `component/text-field/input/text/<state?>`
+- `component/text-field/placeholder/text/<state?>`
+- `component/text-field/helper-text/text/<state?>`
+- `component/text-field/focus-ring/border-color/<state?>`
+
+**Example token names:**
+- `component/text-field/field/bg/default`
+- `component/text-field/field/border-color/invalid`
+- `component/text-field/input/text/disabled`
+- `component/text-field/focus-ring/border-color/focus`
+
+### 3) Selection controls
+
+**Components:** `checkbox`, `radio`, `switch`, `slider`, `segmented-control`, `toggle-button`, `chip`
+
+**Common patterns:**
+- `component/switch/track/bg/<state?>`
+- `component/switch/thumb/bg/<state?>`
+- `component/slider/track/bg/<state?>`
+- `component/slider/fill/bg/<state?>`
+- `component/slider/thumb/bg/<state?>`
+- `component/checkbox/box/bg/<state?>`
+- `component/checkbox/indicator/icon/<state?>`
+
+**Example token names:**
+- `component/switch/track/bg/default`
+- `component/switch/thumb/bg/checked`
+- `component/slider/fill/bg/default`
+- `component/checkbox/indicator/icon/checked`
+
+### 4) Navigation
+
+**Components:** `tabs`, `nav-item`, `sidebar`, `breadcrumb`, `pagination`, `step-indicator`
+
+**Common patterns:**
+- `component/nav-item/container/bg/<state?>`
+- `component/nav-item/label/text/<state?>`
+- `component/tabs/tab/text/<state?>`
+- `component/tabs/tab/indicator/bg/<state?>`
+
+**Example token names:**
+- `component/nav-item/container/bg/selected`
+- `component/nav-item/label/text/hover`
+- `component/tabs/tab/indicator/bg/active`
+
+### 5) Overlays and dialogs
+
+**Components:** `modal`, `dialog`, `drawer`, `popover`, `tooltip`, `toast`, `banner`
+
+**Common patterns:**
+- `component/modal/container/bg`
+- `component/modal/container/shadow`
+- `component/modal/scrim/bg`
+- `component/popover/container/bg`
+- `component/popover/container/shadow`
+
+**Example token names:**
+- `component/modal/container/bg`
+- `component/modal/scrim/bg`
+- `component/popover/container/shadow`
+- `component/tooltip/container/bg`
+
+### 6) Surfaces and containers
+
+**Components:** `card`, `panel`, `sheet`, `accordion`, `list`, `list-item`, `table`, `divider`
+
+**Common patterns:**
+- `component/card/container/bg`
+- `component/card/container/border-color`
+- `component/card/container/radius`
+- `component/card/container/shadow`
+
+**Example token names:**
+- `component/card/container/bg`
+- `component/card/container/radius`
+- `component/panel/container/border-color`
+- `component/list-item/container/bg/hover`
+
+### 7) Media and imagery
+
+**Components:** `avatar`, `thumbnail`, `image`, `media-card`
+
+**Common patterns:**
+- `component/avatar/container/bg`
+- `component/avatar/initials/text`
+- `component/media-card/overlay/bg`
+
+**Example token names:**
+- `component/avatar/container/bg`
+- `component/avatar/initials/text`
+- `component/media-card/overlay/bg`
+
+### 8) Feedback and progress
+
+**Components:** `progress-bar`, `progress-circle`, `spinner`, `skeleton`, `badge`, `tag`
+
+**Common patterns:**
+- `component/progress-bar/track/bg`
+- `component/progress-bar/fill/bg`
+- `component/badge/container/bg/<variant?>`
+- `component/badge/label/text/<variant?>`
+
+**Example token names:**
+- `component/progress-bar/fill/bg`
+- `component/badge/container/bg/success`
+- `component/badge/label/text/warning`
+
+### 9) Typography wrappers (optional)
+
+**Components:** `text`, `heading`, `link`, `code-block`
+
+**Common patterns:**
+- `component/text/style/<variant?>` (only if you truly need per-component overrides beyond `type/...`)
+
+**Example token names:**
+- `component/link/text/default/hover`
+- `component/code-block/container/bg`
 
 ---
 
@@ -1018,7 +2009,7 @@ Track:
 
 ### Current state (v1 - implemented)
 The current implementation includes:
-- ✅ **UI**: Accordion-based form with combobox inputs for term selection
+- ✅ **UI**: Section-based form with combobox inputs for term selection
 - ✅ **Frameworks**: Three tabs (Primitive, Semantic, Component) with framework switching
 - ✅ **Vocabulary**: Hardcoded in `src/vocabulary.js` with namespace-based structure
 - ✅ **Data layer**: `src/data.js` provides getter functions for vocabulary terms
@@ -1058,7 +2049,7 @@ The current implementation includes:
    - Implement dependency rules if needed
 
 5. **Preserve existing functionality**: Ensure all current features continue to work
-   - Accordion UI pattern (can be enhanced but not replaced)
+   - Section-based UI pattern (can be enhanced but not replaced)
    - Combobox inputs with autocomplete
    - Framework tabs and state management
    - History system
@@ -1087,7 +2078,7 @@ src/
 
 ### Phase 0 — Completed ✅
 - ✅ Three framework tabs (Primitive/Semantic/Component)
-- ✅ Accordion-based form UI with combobox inputs
+- ✅ Section-based form UI with combobox inputs
 - ✅ Live preview with category pills and format selector
 - ✅ Copy functionality (token name and JSON)
 - ✅ History system (localStorage, last 10 entries)

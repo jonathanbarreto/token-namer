@@ -1,108 +1,84 @@
 import { VOCABULARY } from "./vocabulary.js";
 
-function termsToValues(terms) {
-  return (terms || []).map((t) => t.value);
+const toTerms = (arr) =>
+  (arr || []).map((v) => (typeof v === "string" ? { value: v, label: v, description: "" } : v));
+
+export function getPrefixTerms(prefixId) {
+  return toTerms(VOCABULARY.prefix?.[prefixId] || []);
 }
 
-/** @type {string[]} */
-export const NAMESPACES = Object.keys(VOCABULARY.namespaces);
-
-/** @type {Record<string, string[]>} */
-export const OBJECTS_BY_NAMESPACE = Object.fromEntries(
-  NAMESPACES.map((ns) => [ns, termsToValues(VOCABULARY.namespaces[ns]?.objects)]),
-);
-
-/** @type {Record<string, string[]>} */
-export const BASES_BY_NAMESPACE = Object.fromEntries(
-  NAMESPACES.map((ns) => [ns, termsToValues(VOCABULARY.namespaces[ns]?.bases)]),
-);
-
-/** @type {Record<string, string[]>} */
-export const BASES_BY_MOTION_OBJECT = Object.fromEntries(
-  Object.entries(VOCABULARY.namespaces.motion?.basesByObject || {}).map(([object, terms]) => [
-    object,
-    termsToValues(terms),
-  ]),
-);
-
-/** @type {string[]} */
-export const MODIFIERS = termsToValues(VOCABULARY.modifiers);
-
-export function getNamespaceTerms() {
-  return NAMESPACES.map((value) => ({ value, ...VOCABULARY.namespaces[value] }));
+export function getPrimitiveCategoryTerms() {
+  return toTerms(VOCABULARY.primitive.categories);
 }
 
-export function getObjectTerms(namespace) {
-  return VOCABULARY.namespaces[namespace]?.objects ? [...VOCABULARY.namespaces[namespace].objects] : [];
+export function getPrimitiveSetTerms(category) {
+  if (category === "color") return toTerms(VOCABULARY.primitive.hues);
+  return toTerms([{ value: "core", label: "core", description: "Common/default set" }]);
 }
 
-export function getBaseTerms(namespace, object) {
-  if (!namespace) return [];
-  if (namespace === "motion") {
-    if (!object) return [];
-    const bases = VOCABULARY.namespaces.motion?.basesByObject?.[object];
-    return bases ? [...bases] : [];
+export function getPrimitiveStepTerms(category) {
+  if (category === "color") {
+    const steps = [0, 50, ...Array.from({ length: 11 }, (_, i) => (i + 1) * 100)];
+    return toTerms(steps.map((n) => String(n)));
   }
-  const bases = VOCABULARY.namespaces[namespace]?.bases;
-  return bases ? [...bases] : [];
+  if (category === "opacity") return toTerms(Array.from({ length: 11 }, (_, i) => String(i * 10)));
+  if (category === "shadow") return toTerms(["0", "1", "2", "3", "4", "5"]);
+  return toTerms(["0", "1", "2", "4", "8", "12", "16", "24", "32"]);
 }
 
-export function getModifierTerms() {
-  return VOCABULARY.modifiers ? [...VOCABULARY.modifiers] : [];
-}
-
-export function getObjects(namespace) {
-  return OBJECTS_BY_NAMESPACE[namespace] ? [...OBJECTS_BY_NAMESPACE[namespace]] : [];
-}
-
-export function getBases(namespace, object) {
-  return termsToValues(getBaseTerms(namespace, object));
-}
-
-export function isAllowedNamespace(value) {
-  return NAMESPACES.includes(value);
-}
-
-export function isAllowedObject(namespace, value) {
-  return getObjects(namespace).includes(value);
-}
-
-export function isAllowedBase(namespace, object, value) {
-  return getBases(namespace, object).includes(value);
-}
-
-export function isAllowedModifier(value) {
-  return MODIFIERS.includes(value);
-}
-
-// Placeholder functions for new framework-specific fields
-// These will be updated when vocabulary data is available
-export function getBaseCategoryTerms(namespace) {
-  // For now, use bases as categories
-  return getBaseTerms(namespace, "");
-}
-
-export function getBaseConceptTerms(namespace, category) {
-  // For now, return empty or use objects as concepts
-  return getObjectTerms(namespace);
-}
-
-export function getBasePropertyTerms(namespace, category, concept) {
-  // For now, use bases as properties
-  return getBaseTerms(namespace, "");
-}
-
-export function getObjectGroupTerms(namespace) {
-  // For now, return empty
+export function getPrimitiveVariantTerms(category) {
+  if (category === "color") {
+    const variants = Array.from({ length: 11 }, (_, i) => `a${i * 10}`);
+    return toTerms(variants);
+  }
   return [];
 }
 
-export function getObjectComponentTerms(namespace) {
-  // For now, use objects as components
-  return getObjectTerms(namespace);
+export function getSemanticDomainTerms() {
+  return toTerms(VOCABULARY.semantic.domains);
 }
 
-export function getObjectElementTerms(namespace, component) {
-  // For now, use bases as elements
-  return getBaseTerms(namespace, component);
+export function getSemanticObjectTerms(domain) {
+  return toTerms(VOCABULARY.semantic.objectsByDomain?.[domain] || []);
 }
+
+export function getSemanticRoleTerms() {
+  return toTerms(VOCABULARY.semantic.roles);
+}
+
+export function getSemanticContextTerms() {
+  return toTerms(VOCABULARY.semantic.contexts);
+}
+
+export function getSemanticStateTerms() {
+  return toTerms(VOCABULARY.semantic.states);
+}
+
+export function getSemanticEmphasisTerms() {
+  return toTerms(VOCABULARY.semantic.emphasis);
+}
+
+export function getComponentNameTerms() {
+  return toTerms(VOCABULARY.component.components);
+}
+
+export function getComponentPartTerms() {
+  return toTerms(VOCABULARY.component.parts);
+}
+
+export function getComponentPropertyTerms() {
+  return toTerms(VOCABULARY.component.properties);
+}
+
+export function getComponentVariantTerms() {
+  return toTerms(VOCABULARY.component.variants);
+}
+
+export function getComponentStateTerms() {
+  return toTerms(VOCABULARY.component.states);
+}
+
+export function getComponentContextTerms() {
+  return toTerms(VOCABULARY.component.contexts);
+}
+
