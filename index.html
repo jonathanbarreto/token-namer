@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Token Namer</title>
+    <title>Token Nomms</title>
     <meta name="description" content="Generate consistent, structured design token names." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,8 +14,8 @@
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="/">
-          <span class="brand-mark" aria-hidden="true">◉</span>
-          <span class="brand-name">Token Namer</span>
+          <img class="brand-mark" src="/assets/images/brand-mark.png" alt="" aria-hidden="true" />
+          <span class="brand-name">Token Nomms</span>
         </a>
 
         <nav class="nav">
@@ -41,65 +41,78 @@
         <div class="container tool-container">
           <div class="section-head">
             <h1 class="tool-title">Token Naming Tool</h1>
-            <p>Generate consistent token names using Primitive, Semantic, and Component frameworks.</p>
+            <p>Create clear, consistent token names based on type and purpose.</p>
           </div>
 
-          <div class="framework-tabs" role="tablist" aria-label="Framework selection">
-            <button type="button" class="framework-tab is-active" role="tab" aria-selected="true" data-framework="primitive">
-              Primitive
-            </button>
-            <button type="button" class="framework-tab" role="tab" aria-selected="false" data-framework="semantic">
-              Semantic
-            </button>
-            <button type="button" class="framework-tab" role="tab" aria-selected="false" data-framework="component">
-              Component
-            </button>
-          </div>
+	          <div class="tool-panels">
+	            <div class="tool-panel tool-panel-left">
+	              <form id="tokenForm" class="tool-form" novalidate>
+	                <section class="form-group" aria-label="Token tier">
+	                  <div class="group-header">
+	                    <h2 class="group-title">Token tier</h2>
+	                    <div class="framework-tabs" role="tablist" aria-label="Framework selection">
+	                      <button type="button" class="framework-tab is-active" role="tab" aria-selected="true" data-framework="primitive">
+	                        Primitive
+	                      </button>
+	                      <button type="button" class="framework-tab" role="tab" aria-selected="false" data-framework="semantic">
+	                        Semantic
+	                      </button>
+	                      <button type="button" class="framework-tab" role="tab" aria-selected="false" data-framework="component">
+	                        Component
+	                      </button>
+	                    </div>
+	                  </div>
 
-          <div class="preview-card">
-            <div class="preview-head">
-              <div class="preview-label">Live preview</div>
-              <div class="format">
-                <label class="sr-only" for="format">Format</label>
-                <select id="format" name="format">
-                  <option value="slash">Slash</option>
-                  <option value="underscore">Underscore</option>
-                </select>
-              </div>
-            </div>
+	                  <div id="frameworkTemplate" class="group-template" aria-live="polite"></div>
 
-            <div class="preview-content">
-              <div id="preview" class="preview-token" tabindex="0" role="group" aria-label="Token name preview"></div>
-              <div id="previewPills" class="preview-pills"></div>
-            </div>
-            <div id="status" class="status" aria-live="polite"></div>
+	                  <div id="frameworkFieldsRequired" class="field-grid"></div>
 
-            <div class="actions">
-              <button class="btn btn-primary" type="button" id="copyName">Copy token name</button>
-              <button class="btn btn-ghost" type="button" id="copyJson">Copy JSON</button>
-              <button class="btn btn-ghost-danger" type="button" id="clearName">Clear name</button>
-            </div>
-          </div>
+	                  <details id="optionalFields" class="optional-section">
+	                    <summary class="optional-summary">
+	                      Optional <span id="optionalCount" class="optional-count" aria-label="Filled optional fields">0</span>
+	                    </summary>
+	                    <div id="frameworkFieldsOptional" class="field-grid"></div>
+	                  </details>
+	                </section>
+	              </form>
+	            </div>
 
-          <form id="tokenForm" class="tool-form" novalidate>
-            <section class="form-group" aria-label="Prefix">
-              <h2 class="group-title">Prefix (optional)</h2>
-              <div id="prefixFields" class="field-grid"></div>
-            </section>
+            <div class="tool-panel tool-panel-right">
+	              <div class="preview-card">
+	                <div class="preview-head">
+	                  <div class="preview-label">Live preview</div>
+	                  <div class="format-inline">
+	                    <label for="format">Format</label>
+	                    <select id="format" name="format">
+	                      <option value="slash">Figma</option>
+	                      <option value="underscore">DSP</option>
+	                    </select>
+	                  </div>
+	                </div>
 
-            <section class="form-group" aria-label="Token fields">
-              <h2 class="group-title">Token fields</h2>
-              <div id="frameworkFields" class="field-grid"></div>
-            </section>
-          </form>
+	                <div class="preview-content">
+	                  <div id="preview" class="preview-token" tabindex="0" role="group" aria-label="Token name preview"></div>
+	                </div>
+	                <div id="status" class="status" aria-live="polite"></div>
 
-          <section class="history" aria-label="History">
-            <div class="history-head">
-              <h2 class="group-title">History</h2>
-              <button class="btn btn-ghost btn-sm" type="button" id="clearHistory">Clear</button>
-            </div>
-            <ul id="history" class="history-list"></ul>
-          </section>
+	                <div class="actions">
+	                  <button class="btn btn-primary" type="button" id="copyName">Copy token name</button>
+	                  <button class="btn btn-ghost" type="button" id="copyJson">Copy JSON</button>
+	                  <button class="btn btn-ghost-danger" type="button" id="clearName">Clear fields</button>
+	                </div>
+	              </div>
+
+	              <section class="history" aria-label="History">
+	                <div class="history-head">
+	                  <h2 class="group-title">History</h2>
+	                  <div class="history-head-actions">
+	                    <button class="btn btn-ghost-danger btn-sm" type="button" id="clearHistory">Clear history</button>
+	                  </div>
+	                </div>
+	                <ul id="history" class="history-list"></ul>
+	              </section>
+	            </div>
+	          </div>
         </div>
       </section>
     </main>
@@ -108,10 +121,10 @@
       <div class="container footer-inner">
         <div class="footer-left">
           <div class="brand brand-footer">
-            <span class="brand-mark" aria-hidden="true">◉</span>
-            <span class="brand-name">Token Namer</span>
+            <img class="brand-mark" src="/assets/images/brand-mark.png" alt="" aria-hidden="true" />
+            <span class="brand-name">Token Nomms</span>
           </div>
-          <p class="fineprint">© <span id="year"></span> Token Namer.</p>
+          <p class="fineprint">© <span id="year"></span> Token Nomms.</p>
         </div>
 
         <div class="footer-links">
@@ -122,6 +135,24 @@
     </footer>
 
     <div id="toastRoot" class="toasts" aria-live="polite" aria-atomic="true"></div>
+    <dialog id="clearHistoryDialog" class="confirm-dialog">
+      <div class="dialog-content">
+        <p class="dialog-message">Clear history?</p>
+        <div class="dialog-actions">
+          <button class="btn btn-ghost" type="button" id="cancelClearHistory">Cancel</button>
+          <button class="btn btn-primary btn-danger" type="button" id="confirmClearHistory">Confirm</button>
+        </div>
+      </div>
+    </dialog>
+    <dialog id="clearFieldsDialog" class="confirm-dialog">
+      <div class="dialog-content">
+        <p class="dialog-message">Clear fields?</p>
+        <div class="dialog-actions">
+          <button class="btn btn-ghost" type="button" id="cancelClearFields">Cancel</button>
+          <button class="btn btn-primary btn-danger" type="button" id="confirmClearFields">Confirm</button>
+        </div>
+      </div>
+    </dialog>
     <script type="module" src="/src/app.js"></script>
   </body>
 </html>

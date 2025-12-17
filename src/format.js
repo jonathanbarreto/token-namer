@@ -7,6 +7,11 @@ export function separatorForFormat(format) {
 export function formatTokenName(segments, format) {
   const sep = separatorForFormat(format);
   const safe = (segments || []).filter((s) => s && String(s).trim().length > 0);
-  return safe.join(sep);
+  const result = safe.join(sep);
+  // Convert to uppercase for DSP (underscore) format
+  if (format === "underscore") {
+    return result.toUpperCase();
+  }
+  return result;
 }
 

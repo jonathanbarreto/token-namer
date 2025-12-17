@@ -3,10 +3,6 @@ import { VOCABULARY } from "./vocabulary.js";
 const toTerms = (arr) =>
   (arr || []).map((v) => (typeof v === "string" ? { value: v, label: v, description: "" } : v));
 
-export function getPrefixTerms(prefixId) {
-  return toTerms(VOCABULARY.prefix?.[prefixId] || []);
-}
-
 export function getPrimitiveCategoryTerms() {
   return toTerms(VOCABULARY.primitive.categories);
 }
