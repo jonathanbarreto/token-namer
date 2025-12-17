@@ -39,9 +39,28 @@
     <main>
       <section id="tool" class="section tool">
         <div class="container tool-container">
-          <div class="section-head">
+          <div class="tool-header">
             <h1 class="tool-title">Token Naming Tool</h1>
             <p>Create clear, consistent token names based on type and purpose.</p>
+            <button
+              type="button"
+              id="howItWorksToggle"
+              class="help-link"
+              aria-expanded="false"
+              aria-controls="howItWorksPanel"
+            >
+              <span class="help-icon" aria-hidden="true">?</span>
+              How it works
+            </button>
+            <div id="howItWorksPanel" class="help-panel" role="region" aria-labelledby="howItWorksToggle" hidden>
+              <ul class="help-list">
+                <li>Choose a framework (Primitive, Semantic, or Component).</li>
+                <li>Fill the required fields (*).</li>
+                <li>Check the live preview for the final path.</li>
+                <li>Copy the token name (and JSON if needed).</li>
+                <li>Use History to reuse a previous name.</li>
+              </ul>
+            </div>
           </div>
 
 	          <div class="tool-panels">
@@ -62,8 +81,6 @@
 	                      </button>
 	                    </div>
 	                  </div>
-
-	                  <div id="frameworkTemplate" class="group-template" aria-live="polite"></div>
 
 	                  <div id="frameworkFieldsRequired" class="field-grid"></div>
 

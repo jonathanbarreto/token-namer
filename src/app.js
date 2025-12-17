@@ -216,9 +216,11 @@ function initTokenTool() {
 
   const previewEl = $("#preview");
   const statusEl = $("#status");
-  const templateEl = $("#frameworkTemplate");
+  // NOTE: Do not add back the frameworkTemplate element - it has been removed per user request
   const requiredFieldsEl = $("#frameworkFieldsRequired");
   const optionalFieldsEl = $("#frameworkFieldsOptional");
+  const howItWorksToggleEl = /** @type {HTMLButtonElement | null} */ ($("#howItWorksToggle"));
+  const howItWorksPanelEl = /** @type {HTMLElement | null} */ ($("#howItWorksPanel"));
   const optionalDetailsEl = /** @type {HTMLDetailsElement | null} */ ($("#optionalFields"));
   const optionalCountEl = $("#optionalCount");
   const formatSelect = /** @type {HTMLSelectElement | null} */ ($("#format"));
@@ -237,7 +239,6 @@ function initTokenTool() {
   if (
     !previewEl ||
     !statusEl ||
-    !templateEl ||
     !requiredFieldsEl ||
     !optionalFieldsEl ||
     !optionalDetailsEl ||
@@ -256,6 +257,18 @@ function initTokenTool() {
     !cancelClearFieldsBtn
   ) {
     return;
+  }
+
+  if (howItWorksToggleEl && howItWorksPanelEl) {
+    const setExpanded = (expanded) => {
+      howItWorksToggleEl.setAttribute("aria-expanded", String(expanded));
+      howItWorksPanelEl.hidden = !expanded;
+    };
+    setExpanded(false);
+    howItWorksToggleEl.addEventListener("click", () => {
+      const next = howItWorksToggleEl.getAttribute("aria-expanded") !== "true";
+      setExpanded(next);
+    });
   }
 
   /** @type {Record<Framework, any>} */
@@ -302,10 +315,13 @@ function initTokenTool() {
   /** @type {Record<string, ReturnType<typeof createCombobox>>} */
   let fieldControls = {};
 
-  function getFrameworkTemplate(framework) {
-    const config = FRAMEWORK_CONFIG[framework];
-    return [...config.segmentPrefix, ...config.defs.map((d) => d.id)].join("/");
+  function getEmptyPreviewMessage(framework) {
+    if (framework === "semantic") return "Select a domain to start building a name.";
+    if (framework === "component") return "Select a component to start building a name.";
+    return "Select a category to start building a name.";
   }
+
+  // NOTE: getFrameworkTemplate function removed - do not add back the framework template display
 
   function buildSegments(framework, fields) {
     const config = FRAMEWORK_CONFIG[framework];
@@ -343,7 +359,16 @@ function initTokenTool() {
 
   function renderPreviewChips(framework, fields) {
     const config = FRAMEWORK_CONFIG[framework];
+    previewEl.classList.remove("is-empty-state");
     previewEl.innerHTML = "";
+
+    const hasAnyRequired = config.requiredIds.some((id) => !isFieldEmpty(fields[id]));
+    if (!hasAnyRequired) {
+      previewEl.classList.add("is-empty-state");
+      previewEl.textContent = getEmptyPreviewMessage(framework);
+      return;
+    }
+
     const separator = formatSelect.value === "underscore" ? "_" : "/";
     const isDSPFormat = formatSelect.value === "underscore";
 
@@ -469,7 +494,7 @@ function initTokenTool() {
       btn.classList.toggle("is-active", isActive);
       btn.setAttribute("aria-selected", String(isActive));
     }
-    setText(templateEl, getFrameworkTemplate(activeFramework));
+    // NOTE: Template display removed - do not add back
     optionalDetailsEl.open = false;
     renderFrameworkFields();
     validateAndRender();
@@ -479,9 +504,7 @@ function initTokenTool() {
       return;
     }
 
-    const fields = stateByFramework[activeFramework];
-    const firstEmptyRequired = FRAMEWORK_CONFIG[activeFramework].defs.find((d) => d.required && isFieldEmpty(fields[d.id]));
-    if (firstEmptyRequired) focusField(firstEmptyRequired.id);
+    // Removed auto-focus on first empty required field - users should engage with fields manually
   }
 
   function clearAllFields() {
@@ -723,7 +746,7 @@ function initTokenTool() {
     showToast("Fields cleared.");
   });
 
-  setText(templateEl, getFrameworkTemplate(activeFramework));
+  // NOTE: Template display removed - do not add back
   renderFrameworkFields();
   renderHistory();
   validateAndRender();
