@@ -33,6 +33,14 @@ export function createCombobox({ id, label, description, placeholder, required, 
   input.setAttribute("aria-controls", `${id}-listbox`);
   box.appendChild(input);
 
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "combobox-clear";
+  clearBtn.setAttribute("aria-label", `Clear ${label}`);
+  clearBtn.textContent = "x";
+  clearBtn.hidden = true;
+  box.appendChild(clearBtn);
+
   const listbox = document.createElement("ul");
   listbox.className = "combobox-listbox";
   listbox.id = `${id}-listbox`;
@@ -80,8 +88,16 @@ export function createCombobox({ id, label, description, placeholder, required, 
       li.id = `${id}-opt-${idx}`;
       li.setAttribute("role", "option");
       li.setAttribute("data-value", opt.value);
-      li.textContent = opt.label || opt.value;
-      if (opt.description) li.title = opt.description;
+      const labelEl = document.createElement("div");
+      labelEl.className = "combobox-option-label";
+      labelEl.textContent = opt.label || opt.value;
+      li.appendChild(labelEl);
+      if (opt.description) {
+        const descEl = document.createElement("div");
+        descEl.className = "combobox-option-desc";
+        descEl.textContent = opt.description;
+        li.appendChild(descEl);
+      }
       li.setAttribute("aria-selected", String(idx === activeIndex));
       li.addEventListener("mousedown", (e) => {
         e.preventDefault();
@@ -91,6 +107,10 @@ export function createCombobox({ id, label, description, placeholder, required, 
     });
   }
 
+  function updateClearVisibility() {
+    clearBtn.hidden = !input.value.trim();
+  }
+
   function filter() {
     const q = input.value.trim().toLowerCase();
     if (!q) filtered = allOptions;
@@ -98,7 +118,8 @@ export function createCombobox({ id, label, description, placeholder, required, 
       filtered = allOptions.filter((opt) => {
         const v = String(opt.value || "").toLowerCase();
         const l = String(opt.label || opt.value || "").toLowerCase();
-        return v.includes(q) || l.includes(q);
+        const d = String(opt.description || "").toLowerCase();
+        return v.includes(q) || l.includes(q) || d.includes(q);
       });
     }
     activeIndex = filtered.length ? 0 : -1;
@@ -121,6 +142,7 @@ export function createCombobox({ id, label, description, placeholder, required, 
     const opt = filtered[index];
     if (!opt) return;
     input.value = opt.value;
+    updateClearVisibility();
     close();
     onInput?.(input.value);
   }
@@ -138,6 +160,7 @@ export function createCombobox({ id, label, description, placeholder, required, 
   });
 
   input.addEventListener("input", () => {
+    updateClearVisibility();
     filter();
     open();
     onInput?.(input.value);
@@ -173,6 +196,19 @@ export function createCombobox({ id, label, description, placeholder, required, 
     }
   });
 
+  clearBtn.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+  });
+
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    updateClearVisibility();
+    onInput?.(input.value);
+    filter();
+    open();
+    input.focus({ preventScroll: true });
+  });
+
   function setError(text) {
     msg.textContent = text || "";
     setTone(msg, text ? "danger" : "");
@@ -180,6 +216,7 @@ export function createCombobox({ id, label, description, placeholder, required, 
   }
 
   render();
+  updateClearVisibility();
 
   return {
     el: wrapper,
@@ -188,7 +225,7 @@ export function createCombobox({ id, label, description, placeholder, required, 
     setError,
     setValue(value) {
       input.value = value || "";
+      updateClearVisibility();
     },
   };
 }
-

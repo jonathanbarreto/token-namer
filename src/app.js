@@ -5,15 +5,15 @@ import { showToast } from "./toast.js";
 import { loadHistory } from "./storage.js";
 import { addToHistory, clearHistory as clearHistoryStore } from "./history.js";
 import { createCombobox } from "./combobox.js";
-import { isValid, validateRequired, validateSegments } from "./validation.js";
+import { isValid, validatePrimitive, validateRequired, validateSegments } from "./validation.js";
+import { inject } from "@vercel/analytics";
 import {
-  getPrimitiveCategoryTerms,
-  getPrimitiveSetTerms,
-  getPrimitiveStepTerms,
-  getPrimitiveVariantTerms,
-  getSemanticDomainTerms,
-  getSemanticObjectTerms,
+  getPrimitivePropertyTerms,
+  getPrimitiveGroupTerms,
+  getPrimitiveIdentifierTerms,
   getSemanticRoleTerms,
+  getSemanticElementTerms,
+  getSemanticVariantTerms,
   getSemanticContextTerms,
   getSemanticStateTerms,
   getSemanticEmphasisTerms,
@@ -26,10 +26,13 @@ import {
 } from "./data.js";
 
 /** @typedef {"primitive" | "semantic" | "component"} Framework */
-/** @typedef {{ id: string, label: string, required: boolean, description?: string, placeholder?: string, options: (fields: any) => any[] }} FieldDef */
+/** @typedef {{ id: string, label: string, required: boolean, description?: string, placeholder?: string, options: (fields: any) => any[], visibleWhen?: (fields: any) => boolean }} FieldDef */
 
 const FRAMEWORKS = /** @type {const} */ (["primitive", "semantic", "component"]);
 const DEFAULT_PLACEHOLDER = "Select or enter a term";
+const PRIMITIVE_GROUPED_PROPERTIES = new Set(["color", "dimension", "shadow", "fontFamily"]);
+
+const requiresPrimitiveGroup = (property) => PRIMITIVE_GROUPED_PROPERTIES.has(String(property || ""));
 
 function buildFrameworkConfig({ defs, segmentPrefix = [], dependentUpdates = {} }) {
   const fieldIds = defs.map((d) => d.id);
@@ -42,89 +45,82 @@ const FRAMEWORK_CONFIG = {
   primitive: buildFrameworkConfig({
     defs: /** @type {FieldDef[]} */ ([
       {
-        id: "category",
-        label: "Category",
+        id: "property",
+        label: "Property",
         required: true,
-        description: "The token type family (what kind of value it is), like color, space, or radius.",
+        description: "The kind of value the token stores (aligned to DTCG types), like `color`, `dimension`, `fontFamily`, `fontSize`.",
         placeholder: DEFAULT_PLACEHOLDER,
-        options: () => getPrimitiveCategoryTerms(),
+        options: () => getPrimitivePropertyTerms(),
+        visibleWhen: () => true,
       },
       {
-        id: "set",
-        label: "Set",
-        required: true,
-        description: "The named group within a category, like a hue (gray) or a shared scale (core).",
-        placeholder: DEFAULT_PLACEHOLDER,
-        options: (s) => getPrimitiveSetTerms(s.category),
-      },
-      {
-        id: "step",
-        label: "Step",
-        required: true,
-        description: "The position on the scale (the specific level), like 050, 500, or 16.",
-        placeholder: DEFAULT_PLACEHOLDER,
-        options: (s) => getPrimitiveStepTerms(s.category),
-      },
-      {
-        id: "variant",
-        label: "Variant",
+        id: "group",
+        label: "Group",
         required: false,
-        description:
-          "A purposeful variation of the same step, like A20 for alpha or a special case you want to keep grouped with the base.",
+        description: "A property-defined grouping segment, like hue, dimension type, or shadow attribute.",
         placeholder: DEFAULT_PLACEHOLDER,
-        options: (s) => getPrimitiveVariantTerms(s.category),
+        options: (s) => getPrimitiveGroupTerms(s.property),
+        visibleWhen: (s) => requiresPrimitiveGroup(s.property),
+      },
+      {
+        id: "identifier",
+        label: "Identifier",
+        required: true,
+        description:
+          "The step or discrete key. Numeric for ramps, controlled terms for discrete properties.",
+        placeholder: DEFAULT_PLACEHOLDER,
+        options: (s) => getPrimitiveIdentifierTerms(s.property, s.group),
+        visibleWhen: (s) => {
+          if (!s.property) return false;
+          if (requiresPrimitiveGroup(s.property)) return Boolean(s.group);
+          return true;
+        },
       },
     ]),
     dependentUpdates: {
-      category(fields, controls) {
-        controls.set?.updateOptions(getPrimitiveSetTerms(fields.category));
-        controls.step?.updateOptions(getPrimitiveStepTerms(fields.category));
-        controls.variant?.updateOptions(getPrimitiveVariantTerms(fields.category));
+      property(fields, controls) {
+        controls.group?.updateOptions(getPrimitiveGroupTerms(fields.property));
+        controls.identifier?.updateOptions(getPrimitiveIdentifierTerms(fields.property, fields.group));
+        if (!getPrimitiveGroupTerms(fields.property).length) {
+          if (fields.group) {
+            fields.group = "";
+            controls.group?.setValue("");
+          }
+        }
+      },
+      group(fields, controls) {
+        controls.identifier?.updateOptions(getPrimitiveIdentifierTerms(fields.property, fields.group));
       },
     },
   }),
   semantic: buildFrameworkConfig({
     defs: /** @type {FieldDef[]} */ ([
       {
-        id: "domain",
-        label: "Domain",
-        required: true,
-        description: "The usage area the token supports, like surface, content, or action.",
-        placeholder: DEFAULT_PLACEHOLDER,
-        options: () => getSemanticDomainTerms(),
-      },
-      {
-        id: "object",
-        label: "Object",
-        required: true,
-        description: "The UI thing being styled inside that domain, like text, background, border, or ring.",
-        placeholder: DEFAULT_PLACEHOLDER,
-        options: (s) => getSemanticObjectTerms(s.domain),
-      },
-      {
         id: "role",
         label: "Role",
         required: true,
-        description: "The intended meaning or job within the object, like primary, secondary, placeholder, or default.",
+        description: "The intent-first purpose of the token, like surface, content, or action.",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getSemanticRoleTerms(),
+        visibleWhen: () => true,
       },
       {
-        id: "context",
-        label: "Context",
-        required: false,
-        description:
-          "Where it's rendered, when the same role needs a specific contrast setup, like inverse or on-media.",
+        id: "element",
+        label: "Element",
+        required: true,
+        description: "The UI anatomy being styled, like text, background, border, or ring.",
         placeholder: DEFAULT_PLACEHOLDER,
-        options: () => getSemanticContextTerms(),
+        options: (s) => getSemanticElementTerms(s.role),
+        visibleWhen: (s) => Boolean(s.role),
       },
       {
-        id: "state",
-        label: "State",
+        id: "variant",
+        label: "Variant",
         required: false,
-        description: "The interactive or conditional situation, like hover, pressed, disabled, or selected.",
+        description: "The categorical option or hierarchy within the role, like primary, secondary, or subtle.",
         placeholder: DEFAULT_PLACEHOLDER,
-        options: () => getSemanticStateTerms(),
+        options: (s) => getSemanticVariantTerms(s.role),
+        visibleWhen: (s) => Boolean(s.role && s.element),
       },
       {
         id: "emphasis",
@@ -134,16 +130,40 @@ const FRAMEWORK_CONFIG = {
           "The intensity level on a consistent ladder, like weakest → strongest (only use if your system truly needs it).",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getSemanticEmphasisTerms(),
+        visibleWhen: (s) => Boolean(s.role && s.element),
+      },
+      {
+        id: "state",
+        label: "State",
+        required: false,
+        description: "The interactive or conditional situation, like enabled, hover, pressed, or selected.",
+        placeholder: DEFAULT_PLACEHOLDER,
+        options: (s) => getSemanticStateTerms(s.role),
+        visibleWhen: (s) => Boolean(s.role && s.element),
+      },
+      {
+        id: "context",
+        label: "Context",
+        required: false,
+        description:
+          "Where it's rendered, when the same role needs a specific contrast setup, like inverse or on-media.",
+        placeholder: DEFAULT_PLACEHOLDER,
+        options: () => getSemanticContextTerms(),
+        visibleWhen: (s) => Boolean(s.role && s.element),
       },
     ]),
     dependentUpdates: {
-      domain(fields, controls) {
-        controls.object?.updateOptions(getSemanticObjectTerms(fields.domain));
+      role(fields, controls) {
+        controls.element?.updateOptions(getSemanticElementTerms(fields.role));
+        controls.variant?.updateOptions(getSemanticVariantTerms(fields.role));
+        controls.state?.updateOptions(getSemanticStateTerms(fields.role));
+      },
+      element(fields, controls) {
+        controls.variant?.updateOptions(getSemanticVariantTerms(fields.role));
       },
     },
   }),
   component: buildFrameworkConfig({
-    segmentPrefix: ["component"],
     defs: /** @type {FieldDef[]} */ ([
       {
         id: "component",
@@ -152,6 +172,7 @@ const FRAMEWORK_CONFIG = {
         description: "The specific UI component this token belongs to, like button, text-field, or nav-item.",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getComponentNameTerms(),
+        visibleWhen: () => true,
       },
       {
         id: "part",
@@ -160,14 +181,16 @@ const FRAMEWORK_CONFIG = {
         description: "The component sub-area being styled, like container, label, icon, track, or thumb.",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getComponentPartTerms(),
+        visibleWhen: (s) => Boolean(s.component),
       },
       {
         id: "property",
         label: "Property",
         required: true,
-        description: "The visual attribute being set, like bg, text, border-color, radius, or shadow.",
+        description: "The visual attribute being set, like background, text, border-color, radius, or shadow.",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getComponentPropertyTerms(),
+        visibleWhen: (s) => Boolean(s.component && s.part),
       },
       {
         id: "variant",
@@ -176,14 +199,16 @@ const FRAMEWORK_CONFIG = {
         description: "The component option that changes styling, like primary, secondary, outline, or compact.",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getComponentVariantTerms(),
+        visibleWhen: (s) => Boolean(s.component && s.part && s.property),
       },
       {
         id: "state",
         label: "State",
         required: false,
-        description: "The component interaction/condition, like hover, pressed, disabled, selected, or focus.",
+        description: "The component interaction/condition, like enabled, hover, pressed, selected, or focus.",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getComponentStateTerms(),
+        visibleWhen: (s) => Boolean(s.component && s.part && s.property),
       },
       {
         id: "context",
@@ -192,6 +217,7 @@ const FRAMEWORK_CONFIG = {
         description: "A special rendering environment that changes contrast needs, like inverse or on-media.",
         placeholder: DEFAULT_PLACEHOLDER,
         options: () => getComponentContextTerms(),
+        visibleWhen: (s) => Boolean(s.component && s.part && s.property),
       },
     ]),
   }),
@@ -217,12 +243,9 @@ function initTokenTool() {
   const previewEl = $("#preview");
   const statusEl = $("#status");
   // NOTE: Do not add back the frameworkTemplate element - it has been removed per user request
-  const requiredFieldsEl = $("#frameworkFieldsRequired");
-  const optionalFieldsEl = $("#frameworkFieldsOptional");
+  const fieldsEl = $("#frameworkFields");
   const howItWorksToggleEl = /** @type {HTMLButtonElement | null} */ ($("#howItWorksToggle"));
   const howItWorksPanelEl = /** @type {HTMLElement | null} */ ($("#howItWorksPanel"));
-  const optionalDetailsEl = /** @type {HTMLDetailsElement | null} */ ($("#optionalFields"));
-  const optionalCountEl = $("#optionalCount");
   const formatSelect = /** @type {HTMLSelectElement | null} */ ($("#format"));
   const copyNameBtn = /** @type {HTMLButtonElement | null} */ ($("#copyName"));
   const copyJsonBtn = /** @type {HTMLButtonElement | null} */ ($("#copyJson"));
@@ -239,10 +262,7 @@ function initTokenTool() {
   if (
     !previewEl ||
     !statusEl ||
-    !requiredFieldsEl ||
-    !optionalFieldsEl ||
-    !optionalDetailsEl ||
-    !optionalCountEl ||
+    !fieldsEl ||
     !formatSelect ||
     !copyNameBtn ||
     !copyJsonBtn ||
@@ -274,18 +294,17 @@ function initTokenTool() {
   /** @type {Record<Framework, any>} */
   const stateByFramework = /** @type {const} */ ({
     primitive: {
-      category: "",
-      set: "",
-      step: "",
-      variant: "",
+      property: "",
+      group: "",
+      identifier: "",
     },
     semantic: {
-      domain: "",
-      object: "",
       role: "",
-      context: "",
-      state: "",
+      element: "",
+      variant: "",
       emphasis: "",
+      state: "",
+      context: "",
     },
     component: {
       component: "",
@@ -315,18 +334,129 @@ function initTokenTool() {
   /** @type {Record<string, ReturnType<typeof createCombobox>>} */
   let fieldControls = {};
 
+  function normalizeSemanticFields(fields) {
+    if (!fields || typeof fields !== "object") return {};
+    const isLegacy = "domain" in fields || "object" in fields;
+    if (!isLegacy) return fields;
+
+    const next = { ...fields };
+    if (!next.role && fields.domain) next.role = fields.domain;
+    if (!next.element && fields.object) next.element = fields.object;
+    if (!next.variant && fields.role) next.variant = fields.role;
+    if (!next.emphasis && fields.emphasis) next.emphasis = fields.emphasis;
+    if (!next.state && fields.state) next.state = fields.state;
+    if (!next.context && fields.context) next.context = fields.context;
+    return next;
+  }
+
+  function normalizePrimitiveFields(fields) {
+    if (!fields || typeof fields !== "object") return {};
+    const next = { ...fields };
+    if ("category" in next || "set" in next || "step" in next || "variant" in next) {
+      const category = String(next.category || "");
+      const step = String(next.step || "");
+      const variant = String(next.variant || "");
+      const set = String(next.set || "");
+      if (!next.property && category) {
+        if (category === "color") {
+          next.property = "color";
+          next.group = set || "";
+          next.identifier = step ? step + (variant ? `-${variant}` : "") : "";
+        } else if (category === "space") {
+          next.property = "dimension";
+          next.group = "space";
+          next.identifier = step;
+        } else if (category === "size") {
+          next.property = "dimension";
+          next.group = "size";
+          next.identifier = step;
+        } else if (category === "radius") {
+          next.property = "dimension";
+          next.group = "radius";
+          next.identifier = step;
+        } else if (category === "border-width") {
+          next.property = "dimension";
+          next.group = "stroke-width";
+          next.identifier = step;
+        } else if (category === "breakpoint") {
+          next.property = "dimension";
+          next.group = "breakpoint";
+          next.identifier = step;
+        } else if (category === "shadow") {
+          next.property = "shadow";
+          next.group = "blur";
+          next.identifier = step;
+        } else if (category === "opacity") {
+          next.property = "opacity";
+          next.identifier = step;
+        } else if (category === "blur") {
+          next.property = "blur";
+          next.identifier = step;
+        } else if (category === "font-family") {
+          next.property = "fontFamily";
+          const isBrand = step.startsWith("brand-") || step === "optimistic-vf";
+          next.group = isBrand ? "brand" : "system";
+          next.identifier = step;
+        } else if (category === "font-size") {
+          next.property = "fontSize";
+          next.identifier = step;
+        } else if (category === "line-height") {
+          next.property = "lineHeight";
+          next.identifier = step;
+        } else if (category === "font-weight") {
+          next.property = "fontWeight";
+          next.identifier = step;
+        } else if (category === "letter-spacing") {
+          next.property = "letterSpacing";
+          next.identifier = step;
+        } else if (category === "duration") {
+          next.property = "duration";
+          next.identifier = step;
+        } else if (category === "easing") {
+          next.property = "easing";
+          next.identifier = step;
+        } else if (category === "layer") {
+          next.property = "layer";
+          next.identifier = step;
+        }
+      }
+      delete next.category;
+      delete next.set;
+      delete next.step;
+      delete next.variant;
+    }
+    return next;
+  }
+
   function getEmptyPreviewMessage(framework) {
-    if (framework === "semantic") return "Select a domain to start building a name.";
+    if (framework === "semantic") return "Select a role to start building a name.";
     if (framework === "component") return "Select a component to start building a name.";
-    return "Select a category to start building a name.";
+    return "Select a property to start building a name.";
   }
 
   // NOTE: getFrameworkTemplate function removed - do not add back the framework template display
 
   function buildSegments(framework, fields) {
     const config = FRAMEWORK_CONFIG[framework];
-    const fieldSegments = config.defs.map((d) => fields[d.id]).filter(Boolean);
+    const fieldSegments = getVisibleDefs(framework, fields).map((d) => fields[d.id]).filter(Boolean);
     return [...config.segmentPrefix, ...fieldSegments].filter(Boolean);
+  }
+
+  function getVisibleDefs(framework, fields) {
+    const config = FRAMEWORK_CONFIG[framework];
+    return config.defs.filter((def) => !def.visibleWhen || def.visibleWhen(fields));
+  }
+
+  function updateFieldVisibility(framework, visibleDefs) {
+    const visibleIds = new Set(visibleDefs.map((def) => def.id));
+    const config = FRAMEWORK_CONFIG[framework];
+    for (const def of config.defs) {
+      const control = fieldControls[def.id];
+      if (!control) continue;
+      const isVisible = visibleIds.has(def.id);
+      control.el.hidden = !isVisible;
+      control.input.disabled = !isVisible;
+    }
   }
 
   function isFieldEmpty(v) {
@@ -349,7 +479,6 @@ function initTokenTool() {
   function focusField(fieldId) {
     const config = FRAMEWORK_CONFIG[activeFramework];
     const def = config.defs.find((d) => d.id === fieldId);
-    if (def && !def.required) optionalDetailsEl.open = true;
 
     const input = fieldControls[fieldId]?.input;
     if (!input) return;
@@ -359,6 +488,7 @@ function initTokenTool() {
 
   function renderPreviewChips(framework, fields) {
     const config = FRAMEWORK_CONFIG[framework];
+    const visibleDefs = getVisibleDefs(framework, fields);
     previewEl.classList.remove("is-empty-state");
     previewEl.innerHTML = "";
 
@@ -378,7 +508,7 @@ function initTokenTool() {
     for (const value of config.segmentPrefix) {
       parts.push({ key: `prefix:${value}`, label: value, value, interactive: false });
     }
-    for (const def of config.defs) {
+    for (const def of visibleDefs) {
       parts.push({
         key: `field:${def.id}`,
         label: def.id,
@@ -438,21 +568,23 @@ function initTokenTool() {
     previewEl.appendChild(frag);
   }
 
-  function renderOptionalCount(framework, fields) {
-    const config = FRAMEWORK_CONFIG[framework];
-    const filled = config.defs.filter((d) => !d.required && !isFieldEmpty(fields[d.id])).length;
-    setText(optionalCountEl, String(filled));
-  }
-
   function validateAndRender() {
     const fields = stateByFramework[activeFramework];
-    const config = FRAMEWORK_CONFIG[activeFramework];
     const interaction = interactionByFramework[activeFramework];
+    const segmentOptions =
+      activeFramework === "primitive" ? { allowUppercaseFields: new Set(["property"]) } : undefined;
+    const visibleDefs = getVisibleDefs(activeFramework, fields);
+    updateFieldVisibility(activeFramework, visibleDefs);
+    const visibleFieldIds = visibleDefs.map((def) => def.id);
+    const visibleRequiredIds = visibleDefs.filter((def) => def.required).map((def) => def.id);
 
     const errors = {
-      ...validateRequired(fields, config.requiredIds),
-      ...validateSegments(fields, config.fieldIds),
+      ...validateRequired(fields, visibleRequiredIds),
+      ...validateSegments(fields, visibleFieldIds, segmentOptions),
     };
+    if (activeFramework === "primitive") {
+      Object.assign(errors, validatePrimitive(fields));
+    }
 
     const visibleErrors = {};
     for (const [id, control] of Object.entries(fieldControls)) {
@@ -465,7 +597,6 @@ function initTokenTool() {
     const segments = buildSegments(activeFramework, fields);
     const tokenName = formatTokenName(segments, formatSelect.value);
     renderPreviewChips(activeFramework, fields);
-    renderOptionalCount(activeFramework, fields);
 
     const firstErrorId = Object.keys(visibleErrors)[0];
     if (firstErrorId) {
@@ -495,7 +626,6 @@ function initTokenTool() {
       btn.setAttribute("aria-selected", String(isActive));
     }
     // NOTE: Template display removed - do not add back
-    optionalDetailsEl.open = false;
     renderFrameworkFields();
     validateAndRender();
 
@@ -520,28 +650,24 @@ function initTokenTool() {
     interaction.touched.clear();
     interaction.dirty.clear();
     interaction.submitted = false;
-    optionalDetailsEl.open = false;
 
     validateAndRender();
   }
 
   function renderFrameworkFields() {
-    requiredFieldsEl.innerHTML = "";
-    optionalFieldsEl.innerHTML = "";
+    fieldsEl.innerHTML = "";
     fieldControls = {};
 
     const framework = activeFramework;
     const fields = stateByFramework[framework];
     const config = FRAMEWORK_CONFIG[framework];
 
-    const requiredDefs = config.defs.filter((d) => d.required);
-    const optionalDefs = config.defs.filter((d) => !d.required);
-    optionalDetailsEl.hidden = optionalDefs.length === 0;
-
     const interaction = interactionByFramework[framework];
 
     /** @param {FieldDef} def */
     function renderField(def, parent) {
+      const normalizeOptions =
+        framework === "primitive" && def.id === "property" ? { preserveCase: true } : {};
       const control = createCombobox({
         id: def.id,
         label: def.label,
@@ -550,14 +676,14 @@ function initTokenTool() {
         required: def.required,
         options: def.options(fields),
         onInput: (v) => {
-          fields[def.id] = normalizeSegment(v);
+          fields[def.id] = normalizeSegment(v, normalizeOptions);
           interaction.dirty.add(def.id);
           config.dependentUpdates?.[def.id]?.(fields, fieldControls);
           validateAndRender();
         },
         onBlur: (v) => {
           interaction.touched.add(def.id);
-          const norm = normalizeSegment(v);
+          const norm = normalizeSegment(v, normalizeOptions);
           fields[def.id] = norm;
           control.setValue(norm);
           validateAndRender();
@@ -569,8 +695,8 @@ function initTokenTool() {
       parent.appendChild(control.el);
     }
 
-    for (const def of requiredDefs) renderField(def, requiredFieldsEl);
-    for (const def of optionalDefs) renderField(def, optionalFieldsEl);
+    for (const def of config.defs) renderField(def, fieldsEl);
+    updateFieldVisibility(framework, getVisibleDefs(framework, fields));
   }
 
   async function copyText(text) {
@@ -624,7 +750,10 @@ function initTokenTool() {
         const fw = /** @type {Framework} */ (item.framework);
         if (!FRAMEWORKS.includes(fw)) return;
 
-        stateByFramework[fw] = { ...stateByFramework[fw], ...(item.fields || {}) };
+        let nextFields = item.fields || {};
+        if (fw === "semantic") nextFields = normalizeSemanticFields(nextFields);
+        if (fw === "primitive") nextFields = normalizePrimitiveFields(nextFields);
+        stateByFramework[fw] = { ...stateByFramework[fw], ...nextFields };
         if (item.format) formatSelect.value = item.format;
 
         const interaction = interactionByFramework[fw];
@@ -634,7 +763,6 @@ function initTokenTool() {
 
         if (fw !== activeFramework) setFramework(fw);
         else {
-          optionalDetailsEl.open = false;
           renderFrameworkFields();
           validateAndRender();
         }
@@ -753,6 +881,7 @@ function initTokenTool() {
 }
 
 function initialize() {
+  inject();
   initGlobalUI();
   initTokenTool();
 }

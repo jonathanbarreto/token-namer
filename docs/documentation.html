@@ -14,13 +14,14 @@
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="/">
-          <span class="brand-mark" aria-hidden="true">◉</span>
+          <img class="brand-mark" src="/assets/images/brand-mark.png" alt="" aria-hidden="true" />
           <span class="brand-name">Token Namer</span>
         </a>
         <nav class="nav">
           <a href="/#tool">Tool</a>
           <a href="/docs/documentation.html">Docs</a>
         </nav>
+        <div class="header-cta"></div>
         <button class="menu-btn" aria-label="Open menu" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
@@ -34,19 +35,112 @@
     <main>
       <section class="section">
         <div class="container">
-          <div class="section-head">
+          <div class="docs-hero-main">
+            <p class="docs-kicker">Naming framework</p>
             <h1>Documentation</h1>
-            <p>Token Namer generates token names from a set of fields. The UI is section-based (no accordions).</p>
+            <p class="docs-lede">
+              Token Namer keeps raw values, intent, and component overrides distinct so teams can scale tokens without
+              losing clarity.
+            </p>
+            <div class="docs-cta">
+              <a class="btn btn-primary" href="/#tool">Open the tool</a>
+            </div>
           </div>
 
-          <div class="preview-card">
-            <h2 class="group-title">Frameworks</h2>
-            <p class="status">
-              <strong>Primitive:</strong> <code>&lt;category&gt;/&lt;set&gt;/&lt;step&gt;/&lt;variant?&gt;</code><br />
-              <strong>Semantic:</strong> <code>&lt;domain&gt;/&lt;object&gt;/&lt;role&gt;/&lt;context?&gt;/&lt;state?&gt;/&lt;emphasis?&gt;</code><br />
-              <strong>Component:</strong> <code>component/&lt;component&gt;/&lt;part&gt;/&lt;property&gt;/&lt;variant?&gt;/&lt;state?&gt;/&lt;context?&gt;</code>
-            </p>
-            <p class="status">All fields accept custom input; values are normalized to kebab-case.</p>
+          <div class="docs-hero">
+
+            <div class="docs-card docs-hero-card">
+              <h2 class="group-title">Framework at a glance</h2>
+              <div class="docs-mini">
+                <div class="docs-mini-row">
+                  <span class="docs-mini-title">Primitive</span>
+                  <code>&lt;property&gt;/&lt;identifier&gt;</code>
+                  <code>&lt;property&gt;/&lt;group&gt;/&lt;identifier&gt;</code>
+                </div>
+                <div class="docs-mini-row">
+                  <span class="docs-mini-title">Semantic</span>
+                  <code>&lt;role&gt;/&lt;element&gt;/&lt;variant?&gt;/&lt;emphasis?&gt;/&lt;state?&gt;/&lt;context?&gt;</code>
+                </div>
+                <div class="docs-mini-row">
+                  <span class="docs-mini-title">Component</span>
+                  <code>&lt;component&gt;/&lt;part&gt;/&lt;property&gt;/&lt;variant?&gt;/&lt;state?&gt;/&lt;context?&gt;</code>
+                </div>
+              </div>
+              <div class="docs-divider"></div>
+              <ol class="docs-steps">
+                <li>Pick a tier to match your intent.</li>
+                <li>Fill fields in order; optional fields appear as you go.</li>
+                <li>Use context for inverse/on-media and state for interaction.</li>
+              </ol>
+            </div>
+
+            <article class="docs-card">
+              <h2 class="group-title">Best practices</h2>
+              <ul class="help-list">
+                <li>Keep primitives literal; never encode meaning or usage.</li>
+                <li>Prefer semantic tokens for intent and theming decisions.</li>
+                <li>Only add component tokens where you need stable override points.</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="docs-grid">
+            <article class="docs-card" id="primitive">
+              <h2 class="group-title">Primitive tokens</h2>
+              <p class="status">Literal values aligned to DTCG properties. No meaning or usage baked in.</p>
+              <div class="docs-code">
+                <code>&lt;property&gt;/&lt;identifier&gt;</code><br />
+                <code>&lt;property&gt;/&lt;group&gt;/&lt;identifier&gt;</code>
+              </div>
+              <p class="docs-subtitle">Examples</p>
+              <div class="docs-code">
+                <code>color/blue/500</code><br />
+                <code>color/blue/500-a20</code><br />
+                <code>dimension/space/16</code><br />
+                <code>fontFamily/brand/brand-sans</code>
+              </div>
+            </article>
+
+            <article class="docs-card" id="semantic">
+              <h2 class="group-title">Semantic tokens</h2>
+              <p class="status">Intent-first naming that maps to primitives and adapts per context.</p>
+              <div class="docs-code">
+                <code>&lt;role&gt;/&lt;element&gt;/&lt;variant?&gt;/&lt;emphasis?&gt;/&lt;state?&gt;/&lt;context?&gt;</code>
+              </div>
+              <p class="docs-subtitle">Examples</p>
+              <div class="docs-code">
+                <code>surface/background/raised</code><br />
+                <code>content/text/primary/inverse</code><br />
+                <code>action/background/primary/hover</code>
+              </div>
+              <p class="status">Role replaces the old domain term. Context captures inverse/on-media needs.</p>
+            </article>
+
+            <article class="docs-card" id="component">
+              <h2 class="group-title">Component tokens</h2>
+              <p class="status">Component-specific overrides without a prefix.</p>
+              <div class="docs-code">
+                <code>&lt;component&gt;/&lt;part&gt;/&lt;property&gt;/&lt;variant?&gt;/&lt;state?&gt;/&lt;context?&gt;</code>
+              </div>
+              <p class="docs-subtitle">Examples</p>
+              <div class="docs-code">
+                <code>button/container/background/primary/enabled</code><br />
+                <code>text-field/field/border-color/invalid</code>
+              </div>
+              <p class="status">Use components for stable override points and anatomy-specific needs.</p>
+            </article>
+          </div>
+
+          <div class="docs-grid docs-grid-two">
+            <article class="docs-card" id="rules">
+              <h2 class="group-title">Input rules</h2>
+              <ul class="help-list">
+                <li>Inputs normalize to kebab-case. Primitive properties keep camelCase when needed (e.g., fontFamily).</li>
+                <li>Optional fields appear based on prior selections and follow framework order.</li>
+                <li>Use context for inverse/on-media needs; use state for interaction (enabled, hover, pressed).</li>
+              </ul>
+            </article>
+
           </div>
         </div>
       </section>
@@ -56,7 +150,7 @@
       <div class="container footer-inner">
         <div class="footer-left">
           <div class="brand brand-footer">
-            <span class="brand-mark" aria-hidden="true">◉</span>
+            <img class="brand-mark" src="/assets/images/brand-mark.png" alt="" aria-hidden="true" />
             <span class="brand-name">Token Namer</span>
           </div>
           <p class="fineprint">© <span id="year"></span> Token Namer.</p>
