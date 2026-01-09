@@ -1,3 +1,4 @@
+import { inject } from "@vercel/analytics";
 import { $, $all, setText, setTone } from "./dom.js";
 import { formatTokenName } from "./format.js";
 import { normalizeSegment } from "./normalize.js";
@@ -755,6 +756,7 @@ function initTokenTool() {
 function initialize() {
   initGlobalUI();
   initTokenTool();
+  inject();
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize);
